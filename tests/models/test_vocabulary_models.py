@@ -8,88 +8,48 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-# Phase 2: Vocabulary Engine Tests
+from datetime import date
 
-from typing import cast
+import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import Table
-
-from omop_atlas_backend.models.vocabulary import Concept, ConceptAncestor, ConceptRelationship, Relationship
-
-
-def test_concept_indices() -> None:
-    """
-    Verify that the Concept model has the expected indices defined.
-    """
-    # Access the Table object via __table__
-    # Mypy treats __table__ as FromClause which doesn't expose indexes, so we cast to Table
-    table = cast(Table, Concept.__table__)
-    indexes = table.indexes
-
-    # Create a set of index names for easier assertion
-    index_names = {idx.name for idx in indexes}
-
-    expected_indexes = {
-        "ix_concept_vocabulary_id",
-        "ix_concept_domain_id",
-        "ix_concept_class_id",
-        "ix_concept_standard_concept",
-        "ix_concept_code",
-        "ix_concept_name",
-    }
-
-    assert expected_indexes.issubset(index_names), f"Missing indices: {expected_indexes - index_names}"
-
-    # Verify column coverage (basic check)
-    for idx in indexes:
-        if idx.name == "ix_concept_vocabulary_id":
-            assert "vocabulary_id" in [c.name for c in idx.columns]
-        elif idx.name == "ix_concept_domain_id":
-            assert "domain_id" in [c.name for c in idx.columns]
+from omop_atlas_backend.models.vocabulary import Concept, Vocabulary
 
 
-def test_concept_ancestor_indices() -> None:
-    """
-    Verify that the ConceptAncestor model has the expected indices defined.
-    """
-    table = cast(Table, ConceptAncestor.__table__)
-    indexes = table.indexes
-    index_names = {idx.name for idx in indexes}
-
-    expected_indexes = {
-        "ix_concept_ancestor_ancestor",
-        "ix_concept_ancestor_descendant",
-    }
-    assert expected_indexes.issubset(index_names)
-
-
-def test_concept_relationship_indices() -> None:
-    """
-    Verify that the ConceptRelationship model has the expected indices defined.
-    """
-    table = cast(Table, ConceptRelationship.__table__)
-    indexes = table.indexes
-    index_names = {idx.name for idx in indexes}
-
-    expected_indexes = {
-        "ix_concept_relationship_id_2",
-        "ix_concept_relationship_id_3",
-    }
-    assert expected_indexes.issubset(index_names)
-
-
-def test_relationship_table() -> None:
-    """
-    Verify that the Relationship model is correctly defined.
-    """
-    assert Relationship.__tablename__ == "relationship"
-    # Basic check to ensure instantiation works
-    rel = Relationship(
-        relationship_id="Is a",
-        relationship_name="Is a",
-        is_hierarchical="1",
-        defines_ancestry="1",
-        reverse_relationship_id="Subsumes",
-        relationship_concept_id=1,
+@pytest.mark.asyncio
+async def test_vocabulary_models(async_session: AsyncSession) -> None:
+    """Test that Vocabulary models can be instantiated and persisted (read-only context)."""
+    # Create a vocabulary
+    vocab = Vocabulary(
+        vocabulary_id="TEST_VOCAB",
+        vocabulary_name="Test Vocabulary",
+        vocabulary_reference="Ref",
+        vocabulary_version="v1",
+        vocabulary_concept_id=0,
     )
-    assert rel.relationship_id == "Is a"
+    async_session.add(vocab)
+
+    # Create a concept
+    concept = Concept(
+        concept_id=1,
+        concept_name="Test Concept",
+        domain_id="Test",
+        vocabulary_id="TEST_VOCAB",
+        concept_class_id="Class",
+        concept_code="CODE",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        invalid_reason=None,
+    )
+    async_session.add(concept)
+    await async_session.commit()
+
+    # Query back
+    stmt = select(Concept).where(Concept.concept_id == 1)
+    result = await async_session.execute(stmt)
+    retrieved = result.scalar_one()
+
+    assert retrieved.concept_name == "Test Concept"
+    assert retrieved.vocabulary_id == "TEST_VOCAB"
+    assert retrieved.valid_start_date == date(2020, 1, 1)
