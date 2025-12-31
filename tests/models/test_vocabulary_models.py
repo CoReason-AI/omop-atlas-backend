@@ -18,7 +18,7 @@ from omop_atlas_backend.models.vocabulary import Concept, Vocabulary
 
 
 @pytest.mark.asyncio
-async def test_vocabulary_models(async_session: AsyncSession):
+async def test_vocabulary_models(async_session: AsyncSession) -> None:
     """Test that Vocabulary models can be instantiated and persisted (read-only context)."""
     # Create a vocabulary
     vocab = Vocabulary(
