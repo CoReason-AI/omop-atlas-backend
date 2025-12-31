@@ -8,6 +8,11 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+"""
+Phase 2: Vocabulary Engine - Schemas
+Pydantic models for serializing Concept search results and API responses.
+"""
+
 from datetime import date
 from typing import List, Optional
 
@@ -33,7 +38,11 @@ class Concept(BaseModel):
     valid_end_date: date = Field(alias="validEndDate")
     invalid_reason: Optional[str] = Field(None, alias="invalidReason")
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        str_strip_whitespace=True,
+    )
 
 
 class ConceptSearch(BaseModel):

@@ -8,10 +8,15 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+"""
+Phase 2: Vocabulary Engine - Service
+Handles high-performance search and retrieval of OMOP Concepts.
+"""
+
 from typing import List, Optional
 
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from omop_atlas_backend.models.vocabulary import Concept
@@ -73,12 +78,39 @@ class VocabularyService:
         :param offset: Pagination offset.
         :return: List of ConceptSchema.
         """
+        # Ensure limit and offset are positive
+        limit = max(1, limit)
+        offset = max(0, offset)
+
         stmt = select(Concept)
 
         # Basic text search (using ILIKE for case-insensitive search)
+        # Note: For production, consider using Postgres Full Text Search (tsvector)
+        # e.g., using search.query with websearch_to_tsquery or plainto_tsquery
         if search.query:
-            query_str = f"%{search.query}%"
-            stmt = stmt.where((Concept.concept_name.ilike(query_str)) | (Concept.concept_code.ilike(query_str)))
+            # Check for Postgres dialect to use Full Text Search
+            is_postgres = False
+            try:
+                if self.db.bind and self.db.bind.dialect.name == "postgresql":
+                    is_postgres = True
+            except Exception:
+                pass  # Fallback if bind is not available or other error
+
+            if is_postgres:
+                # Optimized FTS for Postgres
+                # Match name using FTS OR code using ILIKE
+                stmt = stmt.where(
+                    or_(
+                        func.to_tsvector("english", Concept.concept_name).op("@@")(
+                            func.websearch_to_tsquery("english", search.query)
+                        ),
+                        Concept.concept_code.ilike(f"%{search.query}%"),
+                    )
+                )
+            else:
+                # Fallback for SQLite/others
+                query_str = f"%{search.query}%"
+                stmt = stmt.where(or_(Concept.concept_name.ilike(query_str), Concept.concept_code.ilike(query_str)))
 
         # Filters
         if search.domain_id:
