@@ -1,17 +1,7 @@
-# Copyright (c) 2025 CoReason, Inc.
-#
-# This software is proprietary and dual-licensed.
-# Licensed under the Prosperity Public License 3.0 (the "License").
-# A copy of the license is available at https://prosperitylicense.com/versions/3.0.0
-# For details, see the LICENSE file.
-# Commercial use beyond a 30-day trial requires a separate license.
-#
-# Source Code: https://github.com/CoReason-AI/omop_atlas_backend
-
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import Date, Integer, String
+from sqlalchemy import Date, Integer, String, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column
 
 from omop_atlas_backend.models.base import Base
@@ -19,9 +9,9 @@ from omop_atlas_backend.models.base import Base
 
 class Concept(Base):
     __tablename__ = "concept"
-    # __table_args__ = {"schema": "cdm"} # To be configured
 
-    concept_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Read-only model
+    concept_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     concept_name: Mapped[str] = mapped_column(String(255))
     domain_id: Mapped[str] = mapped_column(String(20))
     vocabulary_id: Mapped[str] = mapped_column(String(20))
