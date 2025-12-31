@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from redis.asyncio import Redis
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from omop_atlas_backend.models.vocabulary import Concept
@@ -20,7 +20,7 @@ class VocabularyService:
 
         # Domain ID Filter
         if search.domain_id:
-            domain_clauses = []
+            domain_clauses: List[ColumnElement[bool]] = []
             non_measurement_domains = [d for d in search.domain_id if d != "Measurement"]
 
             if non_measurement_domains:
@@ -90,7 +90,9 @@ class VocabularyService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_concept(concept_id: int, session: AsyncSession, redis: Optional[Redis] = None) -> Optional[Concept]:
+    async def get_concept(
+        concept_id: int, session: AsyncSession, redis: Optional[Redis[Any]] = None
+    ) -> Optional[Concept]:
         cache_key = f"conceptDetail:{concept_id}"
 
         if redis:

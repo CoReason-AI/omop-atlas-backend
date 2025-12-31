@@ -12,7 +12,7 @@ from omop_atlas_backend.services.vocabulary import VocabularyService
 # --- Schema Tests ---
 
 
-def test_concept_search_alias():
+def test_concept_search_alias() -> None:
     """Test that ConceptSearch schema correctly handles uppercase aliases."""
     data = {
         "QUERY": "test",
@@ -23,7 +23,7 @@ def test_concept_search_alias():
         "INVALID_REASON": "V",
         "IS_LEXICAL": True,
     }
-    search = ConceptSearch(**data)
+    search = ConceptSearch(**data)  # type: ignore[arg-type]
     assert search.query == "test"
     assert search.domain_id == ["Drug"]
     assert search.vocabulary_id == ["RxNorm"]
@@ -33,16 +33,16 @@ def test_concept_search_alias():
     assert search.is_lexical is True
 
 
-def test_concept_search_minimal():
+def test_concept_search_minimal() -> None:
     """Test minimal ConceptSearch input."""
     data = {"QUERY": "aspirin"}
-    search = ConceptSearch(**data)
+    search = ConceptSearch(**data)  # type: ignore[arg-type]
     assert search.query == "aspirin"
     assert search.domain_id is None
     assert search.is_lexical is False
 
 
-def test_concept_schema_aliases():
+def test_concept_schema_aliases() -> None:
     """Test that Concept schema serializes to camelCase."""
     concept = Concept(
         concept_id=1,
@@ -68,7 +68,7 @@ def test_concept_schema_aliases():
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_filters(mocker):
+async def test_search_concepts_filters(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test that search_concepts applies correct SQL filters."""
     mock_session = AsyncMock()
     mock_result = MagicMock()
@@ -88,7 +88,7 @@ async def test_search_concepts_filters(mocker):
         VOCABULARY_ID=["RxNorm"],
         STANDARD_CONCEPT="S",
         INVALID_REASON="V",
-    )
+    )  # type: ignore[call-arg]
 
     await VocabularyService.search_concepts(search, mock_session)
 
@@ -96,7 +96,7 @@ async def test_search_concepts_filters(mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_concept_cache_hit(mocker):
+async def test_get_concept_cache_hit(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test get_concept returns cached data."""
     mock_session = AsyncMock()
     mock_redis = AsyncMock()
@@ -129,14 +129,14 @@ async def test_get_concept_cache_hit(mocker):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_pagination(mocker):
+async def test_search_concepts_pagination(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test search_concepts applies pagination parameters."""
     mock_session = AsyncMock()
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
     mock_session.execute.return_value = mock_result
 
-    search = ConceptSearch(QUERY="test")
+    search = ConceptSearch(QUERY="test")  # type: ignore[call-arg]
 
     # Test custom limit/offset
     await VocabularyService.search_concepts(search, mock_session, limit=100, offset=50)
@@ -146,7 +146,7 @@ async def test_search_concepts_pagination(mocker):
     assert mock_session.execute.called
 
 
-def test_models_import():
+def test_models_import() -> None:
     """Test that all requested models are importable and defined."""
     # This test satisfies the "verify models" requirement from review
     assert Concept.__tablename__ == "concept"
@@ -156,7 +156,7 @@ def test_models_import():
 
 
 @pytest.mark.asyncio
-async def test_get_concept_cache_miss(mocker):
+async def test_get_concept_cache_miss(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test get_concept fetches from DB on cache miss and sets cache."""
     mock_session = AsyncMock()
     mock_redis = AsyncMock()
@@ -188,7 +188,7 @@ async def test_get_concept_cache_miss(mocker):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_filters_more_cases(mocker):
+async def test_search_concepts_filters_more_cases(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test coverage for other filter branches."""
     mock_session = AsyncMock()
     mock_result = MagicMock()
@@ -196,38 +196,38 @@ async def test_search_concepts_filters_more_cases(mocker):
     mock_session.execute.return_value = mock_result
 
     # Case 1: invalid_reason specific value (not V), standard_concept specific value (not N), numeric query
-    search = ConceptSearch(QUERY="12345", INVALID_REASON="D", STANDARD_CONCEPT="C")
+    search = ConceptSearch(QUERY="12345", INVALID_REASON="D", STANDARD_CONCEPT="C")  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 6: Concept Class ID
-    search = ConceptSearch(QUERY="test", CONCEPT_CLASS_ID=["Ingredient"])
+    search = ConceptSearch(QUERY="test", CONCEPT_CLASS_ID=["Ingredient"])  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 5: Standard Concept 'N'
-    search = ConceptSearch(QUERY="test", STANDARD_CONCEPT="N")
+    search = ConceptSearch(QUERY="test", STANDARD_CONCEPT="N")  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 2: Lexical search
-    search = ConceptSearch(QUERY="aspirin", IS_LEXICAL=True)
+    search = ConceptSearch(QUERY="aspirin", IS_LEXICAL=True)  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 3: Domain Measurement special case
-    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement"])
+    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement"])  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 4: Domain Measurement + others
-    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement", "Drug"])
+    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement", "Drug"])  # type: ignore[call-arg]
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
 
 @pytest.mark.asyncio
-async def test_get_concept_cache_exception(mocker):
+async def test_get_concept_cache_exception(mocker) -> None:  # type: ignore[no-untyped-def]
     """Test get_concept falls back to DB if cache parsing fails."""
     mock_session = AsyncMock()
     mock_redis = AsyncMock()
