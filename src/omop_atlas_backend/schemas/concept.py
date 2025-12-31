@@ -14,6 +14,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# Phase 2: Vocabulary Engine
 class Concept(BaseModel):
     # Field aliases are for JSON input/output (camelCase to match ATLAS)
     # Python attributes are snake_case to match SQLAlchemy models

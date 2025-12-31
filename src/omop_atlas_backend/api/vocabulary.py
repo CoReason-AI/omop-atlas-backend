@@ -22,6 +22,7 @@ from omop_atlas_backend.services.vocabulary import VocabularyService
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
 
 
+# Phase 2: Vocabulary Engine
 @router.post("/search", response_model=List[ConceptSchema], response_model_by_alias=True)
 async def search_concepts(
     search: ConceptSearch,
