@@ -53,3 +53,15 @@ async def test_vocabulary_models(async_session: AsyncSession) -> None:
     assert retrieved.concept_name == "Test Concept"
     assert retrieved.vocabulary_id == "TEST_VOCAB"
     assert retrieved.valid_start_date == date(2020, 1, 1)
+
+    # Test __repr__
+    assert "Concept" in repr(retrieved)
+    assert "Test Concept" in repr(retrieved)
+    assert "Vocabulary" in repr(vocab)
+    assert "Test Vocabulary" in repr(vocab)
+
+    from omop_atlas_backend.models.vocabulary import Domain
+
+    domain = Domain(domain_id="Test", domain_name="Test Domain", domain_concept_id=0)
+    assert "Domain" in repr(domain)
+    assert "Test Domain" in repr(domain)

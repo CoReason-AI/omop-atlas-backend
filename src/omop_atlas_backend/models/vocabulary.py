@@ -8,10 +8,15 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+"""
+Phase 2: Vocabulary Engine - Models
+Defines the read-only SQLAlchemy models for the OMOP CDM Vocabulary tables.
+"""
+
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import BigInteger, Date, Index, Integer, String
+from sqlalchemy import BigInteger, Date, Index, Integer, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from omop_atlas_backend.models.base import Base
@@ -31,10 +36,19 @@ class Concept(Base):
         Index("ix_concept_standard_concept", "standard_concept"),
         Index("ix_concept_code", "concept_code"),
         Index("ix_concept_name", "concept_name"),
+        Index(
+            "ix_concept_name_tsv",
+            func.to_tsvector("english", text("concept_name")),
+            postgresql_using="gin",
+        ),
     )
 
     # Read-only model
     concept_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    def __repr__(self) -> str:
+        return f"<Concept(id={self.concept_id}, name='{self.concept_name}')>"
+
     concept_name: Mapped[str] = mapped_column(String(255))
     domain_id: Mapped[str] = mapped_column(String(20))
     vocabulary_id: Mapped[str] = mapped_column(String(20))
@@ -54,6 +68,9 @@ class Vocabulary(Base):
 
     __tablename__ = "vocabulary"
 
+    def __repr__(self) -> str:
+        return f"<Vocabulary(id='{self.vocabulary_id}', name='{self.vocabulary_name}')>"
+
     vocabulary_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     vocabulary_name: Mapped[str] = mapped_column(String(255))
     vocabulary_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -68,6 +85,9 @@ class Domain(Base):
     """
 
     __tablename__ = "domain"
+
+    def __repr__(self) -> str:
+        return f"<Domain(id='{self.domain_id}', name='{self.domain_name}')>"
 
     domain_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     domain_name: Mapped[str] = mapped_column(String(255))

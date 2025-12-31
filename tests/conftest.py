@@ -8,12 +8,28 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import pytest_asyncio
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from omop_atlas_backend.models.base import Base
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+    # Register Postgres functions for SQLite compatibility
+    try:
+        dbapi_connection.create_function("to_tsvector", 2, lambda config, text: text, deterministic=True)
+        dbapi_connection.create_function("websearch_to_tsquery", 2, lambda config, query: query, deterministic=True)
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture
