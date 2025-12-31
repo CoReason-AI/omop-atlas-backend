@@ -8,9 +8,11 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-import os
+import sys
+import importlib
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from omop_atlas_backend.utils import logger as logger_module
 from omop_atlas_backend.utils.logger import logger
 
 def test_logger_initialization():
@@ -25,10 +27,32 @@ def test_logger_initialization():
     assert log_path.exists()
     assert log_path.is_dir()
 
-    # Verify app.log creation if it was logged to (it might be empty or not created until log)
-    # logger.info("Test log")
-    # assert (log_path / "app.log").exists()
-
 def test_logger_exports():
     """Test that logger is exported."""
     assert logger is not None
+
+def test_logger_creates_directory():
+    """Test that the logger creates the directory if it doesn't exist."""
+    with patch("pathlib.Path") as MockPath:
+        mock_path_instance = MockPath.return_value
+        # First call to exists() returns False (check), subsequent calls might matter but only first matters for if block
+        mock_path_instance.exists.return_value = False
+
+        # Reload the module to trigger the code at module level
+        importlib.reload(logger_module)
+
+        # Verify mkdir was called
+        # We need to find the call on the specific instance that was created with "logs"
+        # Since Path("logs") creates a new instance
+
+        # Check if any instance created called mkdir
+        # MockPath is the class. MockPath("logs") returns an instance.
+        # We want to check if that instance had mkdir called.
+
+        # We can inspect all calls to the class
+        # But simpler: MockPath.return_value matches ANY instance created if side_effect is not set
+
+        mock_path_instance.mkdir.assert_called_with(parents=True, exist_ok=True)
+
+    # Reload again to restore normal state for other tests if needed
+    importlib.reload(logger_module)
