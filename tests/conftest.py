@@ -13,10 +13,17 @@ from typing import AsyncGenerator
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
+from omop_atlas_backend.models.base import Base
+
 
 @pytest_asyncio.fixture
 async def async_engine() -> AsyncGenerator[AsyncEngine, None]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+
+    # Create tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     yield engine
     await engine.dispose()
 
