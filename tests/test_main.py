@@ -8,8 +8,30 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from omop_atlas_backend.main import hello_world
+from contextlib import asynccontextmanager
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from omop_atlas_backend.main import app, hello_world
 
 
 def test_hello_world() -> None:
-    assert hello_world() == "Hello World!"
+    assert hello_world() == {"message": "Hello World!"}
+
+
+def test_lifespan() -> None:
+    """Test that lifespan logs startup and shutdown events."""
+    with patch("omop_atlas_backend.main.logger") as mock_logger:
+        with TestClient(app) as client:
+            client.get("/")  # Trigger startup
+            assert mock_logger.info.called
+            args, _ = mock_logger.info.call_args_list[0]
+            assert "Starting" in args[0]
+
+        # Trigger shutdown
+        assert mock_logger.info.call_count >= 2
+        args, _ = mock_logger.info.call_args_list[-1]
+        assert "Shutting down" in args[0]

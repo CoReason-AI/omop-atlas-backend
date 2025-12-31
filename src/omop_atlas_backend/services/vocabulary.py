@@ -10,13 +10,12 @@
 
 from typing import List, Optional
 
-from redis.asyncio import Redis
-from sqlalchemy import ColumnElement, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from omop_atlas_backend.models.vocabulary import Concept
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
+from redis.asyncio import Redis
+from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class VocabularyService:
@@ -106,7 +105,7 @@ class VocabularyService:
     async def get_concept(
         concept_id: int,
         session: AsyncSession,
-        redis: Optional[Redis] = None,  # type: ignore[type-arg]
+        redis: Optional[Redis] = None,
     ) -> Optional[Concept]:
         cache_key = f"conceptDetail:{concept_id}"
 

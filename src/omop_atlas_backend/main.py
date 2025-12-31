@@ -8,9 +8,33 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from fastapi import FastAPI
+
+from omop_atlas_backend.api import vocabulary
 from omop_atlas_backend.utils.logger import logger
 
 
-def hello_world() -> str:
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    logger.info("Starting omop-atlas-backend...")
+    yield
+    logger.info("Shutting down omop-atlas-backend...")
+
+
+app = FastAPI(
+    title="OMOP ATLAS Backend",
+    description="Modern Python port of OHDSI WebAPI",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.include_router(vocabulary.router)
+
+
+@app.get("/")
+def hello_world() -> dict[str, str]:
     logger.info("Hello World!")
-    return "Hello World!"
+    return {"message": "Hello World!"}
