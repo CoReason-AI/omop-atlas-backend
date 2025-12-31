@@ -11,7 +11,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import BigInteger, Date, Integer, String
+from sqlalchemy import BigInteger, Date, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from omop_atlas_backend.models.base import Base
@@ -19,6 +19,14 @@ from omop_atlas_backend.models.base import Base
 
 class Concept(Base):
     __tablename__ = "concept"
+    __table_args__ = (
+        Index("ix_concept_vocabulary_id", "vocabulary_id"),
+        Index("ix_concept_domain_id", "domain_id"),
+        Index("ix_concept_class_id", "concept_class_id"),
+        Index("ix_concept_standard_concept", "standard_concept"),
+        Index("ix_concept_code", "concept_code"),
+        Index("ix_concept_name", "concept_name"),
+    )
 
     # Read-only model
     concept_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
