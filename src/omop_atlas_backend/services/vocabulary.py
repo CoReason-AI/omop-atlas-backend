@@ -1,4 +1,14 @@
-from typing import Any, List, Optional
+# Copyright (c) 2025 CoReason, Inc.
+#
+# This software is proprietary and dual-licensed.
+# Licensed under the Prosperity Public License 3.0 (the "License").
+# A copy of the license is available at https://prosperitylicense.com/versions/3.0.0
+# For details, see the LICENSE file.
+# Commercial use beyond a 30-day trial requires a separate license.
+#
+# Source Code: https://github.com/CoReason-AI/omop_atlas_backend
+
+from typing import List, Optional
 
 from redis.asyncio import Redis
 from sqlalchemy import ColumnElement, func, or_, select
@@ -94,7 +104,9 @@ class VocabularyService:
 
     @staticmethod
     async def get_concept(
-        concept_id: int, session: AsyncSession, redis: Optional[Redis[Any]] = None
+        concept_id: int,
+        session: AsyncSession,
+        redis: Optional[Redis] = None,  # type: ignore[type-arg]
     ) -> Optional[Concept]:
         cache_key = f"conceptDetail:{concept_id}"
 
@@ -131,4 +143,4 @@ class VocabularyService:
             # Use by_alias=True to get camelCase keys which matches what we expect in cache/API
             await redis.set(cache_key, schema_model.model_dump_json(by_alias=True))
 
-        return concept
+        return concept  # type: ignore[no-any-return]
