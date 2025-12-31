@@ -69,7 +69,7 @@ async def test_get_concept_found_db(service: VocabularyService, async_session: A
     # Verify Redis cache set was called
     assert service.redis is not None
     # We need to cast or ignore type for 'set' on the mock object
-    service.redis.set.assert_called_once()  # type: ignore[attr-defined]
+    service.redis.set.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -82,7 +82,7 @@ async def test_get_concept_found_cache(service: VocabularyService) -> None:
     )
 
     assert service.redis is not None
-    service.redis.get = AsyncMock(return_value=cached_concept_json)  # type: ignore[method-assign]
+    service.redis.get = AsyncMock(return_value=cached_concept_json)
 
     concept = await service.get_concept(2)
     assert concept is not None
@@ -96,7 +96,7 @@ async def test_get_concept_found_cache(service: VocabularyService) -> None:
 async def test_get_concept_redis_error_get(service: VocabularyService, async_session: AsyncSession) -> None:
     """Test resilience when Redis get fails."""
     assert service.redis is not None
-    service.redis.get.side_effect = Exception("Redis connection failed")  # type: ignore[attr-defined]
+    service.redis.get.side_effect = Exception("Redis connection failed")
 
     # Seed DB so it can fall back
     db_concept = Concept(
@@ -116,15 +116,15 @@ async def test_get_concept_redis_error_get(service: VocabularyService, async_ses
     assert concept is not None
     assert concept.concept_id == 3
     # Should still try to set cache if get failed but set works (unlikely in real life but possible in mocks)
-    service.redis.set.assert_called_once()  # type: ignore[attr-defined]
+    service.redis.set.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_concept_redis_error_set(service: VocabularyService, async_session: AsyncSession) -> None:
     """Test resilience when Redis set fails."""
     assert service.redis is not None
-    service.redis.get.return_value = None  # type: ignore[attr-defined]
-    service.redis.set.side_effect = Exception("Redis write failed")  # type: ignore[attr-defined]
+    service.redis.get.return_value = None
+    service.redis.set.side_effect = Exception("Redis write failed")
 
     # Seed DB
     db_concept = Concept(

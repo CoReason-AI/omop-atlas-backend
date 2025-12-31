@@ -63,7 +63,7 @@ def test_app(mock_session: AsyncMock, mock_redis: AsyncMock) -> FastAPI:
 
     app.dependency_overrides[get_db] = _get_db
     app.dependency_overrides[get_redis] = _get_redis
-    return app
+    return app  # type: ignore[no-any-return]
 
 
 @pytest.mark.asyncio
