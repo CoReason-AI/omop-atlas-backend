@@ -13,6 +13,7 @@ from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch

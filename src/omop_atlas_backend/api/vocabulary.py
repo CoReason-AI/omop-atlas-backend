@@ -13,12 +13,13 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from omop_atlas_backend.dependencies import get_db, get_redis
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
 from omop_atlas_backend.services.vocabulary import VocabularyService
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
 
