@@ -12,7 +12,7 @@ from typing import cast
 
 from sqlalchemy import Table
 
-from omop_atlas_backend.models.vocabulary import Concept
+from omop_atlas_backend.models.vocabulary import Concept, ConceptAncestor, ConceptRelationship, Relationship
 
 
 def test_concept_indices() -> None:
@@ -44,3 +44,50 @@ def test_concept_indices() -> None:
             assert "vocabulary_id" in [c.name for c in idx.columns]
         elif idx.name == "ix_concept_domain_id":
             assert "domain_id" in [c.name for c in idx.columns]
+
+
+def test_concept_ancestor_indices() -> None:
+    """
+    Verify that the ConceptAncestor model has the expected indices defined.
+    """
+    table = cast(Table, ConceptAncestor.__table__)
+    indexes = table.indexes
+    index_names = {idx.name for idx in indexes}
+
+    expected_indexes = {
+        "ix_concept_ancestor_ancestor",
+        "ix_concept_ancestor_descendant",
+    }
+    assert expected_indexes.issubset(index_names)
+
+
+def test_concept_relationship_indices() -> None:
+    """
+    Verify that the ConceptRelationship model has the expected indices defined.
+    """
+    table = cast(Table, ConceptRelationship.__table__)
+    indexes = table.indexes
+    index_names = {idx.name for idx in indexes}
+
+    expected_indexes = {
+        "ix_concept_relationship_id_2",
+        "ix_concept_relationship_id_3",
+    }
+    assert expected_indexes.issubset(index_names)
+
+
+def test_relationship_table() -> None:
+    """
+    Verify that the Relationship model is correctly defined.
+    """
+    assert Relationship.__tablename__ == "relationship"
+    # Basic check to ensure instantiation works
+    rel = Relationship(
+        relationship_id="Is a",
+        relationship_name="Is a",
+        is_hierarchical="1",
+        defines_ancestry="1",
+        reverse_relationship_id="Subsumes",
+        relationship_concept_id=1,
+    )
+    assert rel.relationship_id == "Is a"
