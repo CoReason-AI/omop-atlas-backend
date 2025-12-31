@@ -3,15 +3,14 @@ from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from sqlalchemy import select
-from pydantic import ValidationError
 
-from omop_atlas_backend.models.vocabulary import Concept, Vocabulary, Domain, ConceptClass
-from omop_atlas_backend.schemas.concept import ConceptSearch, Concept as ConceptSchema
+from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
+from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import ConceptSearch
 from omop_atlas_backend.services.vocabulary import VocabularyService
 
-
 # --- Schema Tests ---
+
 
 def test_concept_search_alias():
     """Test that ConceptSearch schema correctly handles uppercase aliases."""
@@ -22,7 +21,7 @@ def test_concept_search_alias():
         "CONCEPT_CLASS_ID": ["Ingredient"],
         "STANDARD_CONCEPT": "S",
         "INVALID_REASON": "V",
-        "IS_LEXICAL": True
+        "IS_LEXICAL": True,
     }
     search = ConceptSearch(**data)
     assert search.query == "test"
@@ -55,7 +54,7 @@ def test_concept_schema_aliases():
         concept_code="123",
         valid_start_date=date(2020, 1, 1),
         valid_end_date=date(2099, 12, 31),
-        invalid_reason=None
+        invalid_reason=None,
     )
     schema = ConceptSchema.model_validate(concept)
     json_output = schema.model_dump(by_alias=True)
@@ -66,6 +65,7 @@ def test_concept_schema_aliases():
 
 
 # --- Service Tests ---
+
 
 @pytest.mark.asyncio
 async def test_search_concepts_filters(mocker):
@@ -87,7 +87,7 @@ async def test_search_concepts_filters(mocker):
         DOMAIN_ID=["Drug", "Measurement"],
         VOCABULARY_ID=["RxNorm"],
         STANDARD_CONCEPT="S",
-        INVALID_REASON="V"
+        INVALID_REASON="V",
     )
 
     await VocabularyService.search_concepts(search, mock_session)
@@ -101,18 +101,20 @@ async def test_get_concept_cache_hit(mocker):
     mock_session = AsyncMock()
     mock_redis = AsyncMock()
 
-    cached_json = json.dumps({
-        "conceptId": 123,
-        "conceptName": "Cached Concept",
-        "domainId": "Drug",
-        "vocabularyId": "RxNorm",
-        "conceptClassId": "Ingredient",
-        "standardConcept": "S",
-        "conceptCode": "C123",
-        "validStartDate": "2020-01-01",
-        "validEndDate": "2099-12-31",
-        "invalidReason": None
-    })
+    cached_json = json.dumps(
+        {
+            "conceptId": 123,
+            "conceptName": "Cached Concept",
+            "domainId": "Drug",
+            "vocabularyId": "RxNorm",
+            "conceptClassId": "Ingredient",
+            "standardConcept": "S",
+            "conceptCode": "C123",
+            "validStartDate": "2020-01-01",
+            "validEndDate": "2099-12-31",
+            "invalidReason": None,
+        }
+    )
 
     mock_redis.get.return_value = cached_json
 
@@ -170,7 +172,7 @@ async def test_get_concept_cache_miss(mocker):
         concept_code="C456",
         valid_start_date=date(2020, 1, 1),
         valid_end_date=date(2099, 12, 31),
-        invalid_reason=None
+        invalid_reason=None,
     )
 
     mock_result = MagicMock()
@@ -194,51 +196,32 @@ async def test_search_concepts_filters_more_cases(mocker):
     mock_session.execute.return_value = mock_result
 
     # Case 1: invalid_reason specific value (not V), standard_concept specific value (not N), numeric query
-    search = ConceptSearch(
-        QUERY="12345",
-        INVALID_REASON="D",
-        STANDARD_CONCEPT="C"
-    )
+    search = ConceptSearch(QUERY="12345", INVALID_REASON="D", STANDARD_CONCEPT="C")
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 6: Concept Class ID
-    search = ConceptSearch(
-        QUERY="test",
-        CONCEPT_CLASS_ID=["Ingredient"]
-    )
+    search = ConceptSearch(QUERY="test", CONCEPT_CLASS_ID=["Ingredient"])
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 5: Standard Concept 'N'
-    search = ConceptSearch(
-        QUERY="test",
-        STANDARD_CONCEPT="N"
-    )
+    search = ConceptSearch(QUERY="test", STANDARD_CONCEPT="N")
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 2: Lexical search
-    search = ConceptSearch(
-        QUERY="aspirin",
-        IS_LEXICAL=True
-    )
+    search = ConceptSearch(QUERY="aspirin", IS_LEXICAL=True)
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 3: Domain Measurement special case
-    search = ConceptSearch(
-        QUERY="test",
-        DOMAIN_ID=["Measurement"]
-    )
+    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement"])
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
     # Case 4: Domain Measurement + others
-    search = ConceptSearch(
-        QUERY="test",
-        DOMAIN_ID=["Measurement", "Drug"]
-    )
+    search = ConceptSearch(QUERY="test", DOMAIN_ID=["Measurement", "Drug"])
     await VocabularyService.search_concepts(search, mock_session)
     assert mock_session.execute.called
 
@@ -262,7 +245,7 @@ async def test_get_concept_cache_exception(mocker):
         concept_code="C999",
         valid_start_date=date(2020, 1, 1),
         valid_end_date=date(2099, 12, 31),
-        invalid_reason=None
+        invalid_reason=None,
     )
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_concept

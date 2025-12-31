@@ -1,12 +1,12 @@
 from typing import List, Optional
-import json
 
-from sqlalchemy import select, or_, cast, Integer, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from omop_atlas_backend.models.vocabulary import Concept
-from omop_atlas_backend.schemas.concept import ConceptSearch, Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import ConceptSearch
 
 
 class VocabularyService:
@@ -14,10 +14,7 @@ class VocabularyService:
 
     @staticmethod
     async def search_concepts(
-        search: ConceptSearch,
-        session: AsyncSession,
-        limit: int = DEFAULT_SEARCH_ROWS,
-        offset: int = 0
+        search: ConceptSearch, session: AsyncSession, limit: int = DEFAULT_SEARCH_ROWS, offset: int = 0
     ) -> List[Concept]:
         stmt = select(Concept)
 
@@ -33,10 +30,11 @@ class VocabularyService:
                 # MEASUREMENT domain special case: ensure concept class is 'lab test' or 'procedure'
                 # Note: Java source uses LOWER(concept_class_id) in ('lab test', 'procedure')
                 # But here we assume concept_class_id is consistent case or we use ilike if needed.
-                # The Java code was: (DOMAIN_ID = 'Measurement' and LOWER(concept_class_id) in ('lab test', 'procedure'))
+                # The Java code was: (DOMAIN_ID = 'Measurement' and
+                # LOWER(concept_class_id) in ('lab test', 'procedure'))
                 domain_clauses.append(
-                    (Concept.domain_id == "Measurement") &
-                    (func.lower(Concept.concept_class_id).in_(["lab test", "procedure"]))
+                    (Concept.domain_id == "Measurement")
+                    & (func.lower(Concept.concept_class_id).in_(["lab test", "procedure"]))
                 )
 
             if domain_clauses:
@@ -79,10 +77,7 @@ class VocabularyService:
                 # Java: LOWER(CONCEPT_NAME) LIKE '%@query%' or LOWER(CONCEPT_CODE) LIKE '%@query%'
                 # If numeric: or CONCEPT_ID = CAST(@query as int)
 
-                filters = [
-                    Concept.concept_name.ilike(f"%{query_str}%"),
-                    Concept.concept_code.ilike(f"%{query_str}%")
-                ]
+                filters = [Concept.concept_name.ilike(f"%{query_str}%"), Concept.concept_code.ilike(f"%{query_str}%")]
 
                 if query_str.isdigit():
                     filters.append(Concept.concept_id == int(query_str))

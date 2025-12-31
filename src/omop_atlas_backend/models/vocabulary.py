@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import Date, Integer, String, BigInteger
+from sqlalchemy import BigInteger, Date, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from omop_atlas_backend.models.base import Base
