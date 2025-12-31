@@ -13,8 +13,11 @@ from __future__ import annotations
 import os
 from typing import AsyncGenerator, Optional
 
+from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from omop_atlas_backend.services.vocabulary import VocabularyService
 
 # Default to in-memory for dev/test if not specified, or use a proper env var.
 # AGENTS.md mentions: Expect Postgres credentials in PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE.
@@ -49,3 +52,10 @@ async def get_redis() -> AsyncGenerator[Optional["Redis[str]"], None]:
         yield client
     finally:
         await client.close()
+
+
+async def get_vocabulary_service(
+    session: AsyncSession = Depends(get_db),  # noqa: B008
+    redis: Optional["Redis[str]"] = Depends(get_redis),  # noqa: B008
+) -> VocabularyService:
+    return VocabularyService(session, redis)
