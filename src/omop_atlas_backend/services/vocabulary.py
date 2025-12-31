@@ -19,6 +19,7 @@ from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
 
 
+# Phase 2: Vocabulary Engine
 class VocabularyService:
     def __init__(self, db: AsyncSession, redis: Optional["Redis[str]"]):
         self.db = db
