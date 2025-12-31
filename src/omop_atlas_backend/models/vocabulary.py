@@ -11,7 +11,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import Date, Integer, String
+from sqlalchemy import BigInteger, Date, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from omop_atlas_backend.models.base import Base
@@ -19,9 +19,9 @@ from omop_atlas_backend.models.base import Base
 
 class Concept(Base):
     __tablename__ = "concept"
-    # __table_args__ = {"schema": "cdm"} # To be configured
 
-    concept_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Read-only model
+    concept_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     concept_name: Mapped[str] = mapped_column(String(255))
     domain_id: Mapped[str] = mapped_column(String(20))
     vocabulary_id: Mapped[str] = mapped_column(String(20))
