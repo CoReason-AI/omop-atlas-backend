@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from omop_atlas_backend.models.base import Base
 
 
+# Phase 2: Vocabulary Engine
 class Concept(Base):
     __tablename__ = "concept"
     __table_args__ = (
