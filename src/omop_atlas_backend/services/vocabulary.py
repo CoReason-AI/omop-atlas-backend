@@ -10,12 +10,13 @@
 
 from typing import List, Optional
 
-from omop_atlas_backend.models.vocabulary import Concept
-from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
-from omop_atlas_backend.schemas.concept import ConceptSearch
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from omop_atlas_backend.models.vocabulary import Concept
+from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import ConceptSearch
 
 
 class VocabularyService:

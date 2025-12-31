@@ -11,8 +11,9 @@
 from typing import AsyncGenerator
 
 import pytest_asyncio
-from omop_atlas_backend.models.base import Base
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
+from omop_atlas_backend.models.base import Base
 
 
 @pytest_asyncio.fixture

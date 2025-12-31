@@ -12,11 +12,12 @@ from datetime import date
 from unittest.mock import AsyncMock
 
 import pytest
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from omop_atlas_backend.models.vocabulary import Concept
 from omop_atlas_backend.schemas.concept import ConceptSearch
 from omop_atlas_backend.services.vocabulary import VocabularyService
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
