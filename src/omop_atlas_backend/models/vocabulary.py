@@ -86,3 +86,57 @@ class ConceptClass(Base):
     concept_class_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     concept_class_name: Mapped[str] = mapped_column(String(255))
     concept_class_concept_id: Mapped[int] = mapped_column(Integer)
+
+
+class ConceptAncestor(Base):
+    """
+    OMOP CDM Concept Ancestor table.
+    Defines the hierarchical relationships between concepts.
+    """
+
+    __tablename__ = "concept_ancestor"
+    __table_args__ = (
+        Index("ix_concept_ancestor_ancestor", "ancestor_concept_id"),
+        Index("ix_concept_ancestor_descendant", "descendant_concept_id"),
+    )
+
+    ancestor_concept_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    descendant_concept_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    min_levels_of_separation: Mapped[int] = mapped_column(Integer)
+    max_levels_of_separation: Mapped[int] = mapped_column(Integer)
+
+
+class ConceptRelationship(Base):
+    """
+    OMOP CDM Concept Relationship table.
+    Defines direct relationships between concepts (e.g., 'Mapped from').
+    """
+
+    __tablename__ = "concept_relationship"
+    __table_args__ = (
+        Index("ix_concept_relationship_id_2", "concept_id_2"),
+        Index("ix_concept_relationship_id_3", "relationship_id"),
+    )
+
+    concept_id_1: Mapped[int] = mapped_column(Integer, primary_key=True)
+    concept_id_2: Mapped[int] = mapped_column(Integer, primary_key=True)
+    relationship_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    valid_start_date: Mapped[date] = mapped_column(Date)
+    valid_end_date: Mapped[date] = mapped_column(Date)
+    invalid_reason: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
+
+
+class Relationship(Base):
+    """
+    OMOP CDM Relationship table.
+    Defines the types of relationships (e.g., 'Is a', 'Maps to').
+    """
+
+    __tablename__ = "relationship"
+
+    relationship_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    relationship_name: Mapped[str] = mapped_column(String(255))
+    is_hierarchical: Mapped[str] = mapped_column(String(1))
+    defines_ancestry: Mapped[str] = mapped_column(String(1))
+    reverse_relationship_id: Mapped[str] = mapped_column(String(20))
+    relationship_concept_id: Mapped[int] = mapped_column(Integer)
