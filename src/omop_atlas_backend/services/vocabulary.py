@@ -8,6 +8,8 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from __future__ import annotations
+
 from typing import List, Optional
 
 from redis.asyncio import Redis
@@ -106,7 +108,7 @@ class VocabularyService:
     async def get_concept(
         concept_id: int,
         session: AsyncSession,
-        redis: Optional[Redis] = None,  # type: ignore[type-arg]
+        redis: Optional["Redis[str]"] = None,
     ) -> Optional[Concept]:
         cache_key = f"conceptDetail:{concept_id}"
 
