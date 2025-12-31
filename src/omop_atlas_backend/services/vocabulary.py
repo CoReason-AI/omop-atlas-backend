@@ -20,7 +20,7 @@ from omop_atlas_backend.schemas.concept import ConceptSearch
 
 
 class VocabularyService:
-    def __init__(self, db: AsyncSession, redis: Optional[Redis]):
+    def __init__(self, db: AsyncSession, redis: Optional["Redis[str]"]):
         self.db = db
         self.redis = redis
 

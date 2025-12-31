@@ -12,6 +12,7 @@ from datetime import date
 from unittest.mock import AsyncMock
 
 import pytest
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from omop_atlas_backend.models.vocabulary import Concept
@@ -20,26 +21,30 @@ from omop_atlas_backend.services.vocabulary import VocabularyService
 
 
 @pytest.fixture
-def mock_redis():
-    redis = AsyncMock()
+def mock_redis() -> AsyncMock:
+    redis = AsyncMock(spec=Redis)
+    # mock get and set methods
     redis.get = AsyncMock(return_value=None)
     redis.set = AsyncMock(return_value=None)
     return redis
 
 
 @pytest.fixture
-def service(async_session: AsyncSession, mock_redis):
+def service(async_session: AsyncSession, mock_redis: AsyncMock) -> VocabularyService:
+    # We cast mock_redis to Optional["Redis[str]"] effectively by passing it,
+    # but mypy might complain if strict.
+    # Ideally VocabularyService accepts an object that satisfies the Redis interface.
     return VocabularyService(async_session, mock_redis)
 
 
 @pytest.mark.asyncio
-async def test_get_concept_not_found(service: VocabularyService):
+async def test_get_concept_not_found(service: VocabularyService) -> None:
     concept = await service.get_concept(999)
     assert concept is None
 
 
 @pytest.mark.asyncio
-async def test_get_concept_found_db(service: VocabularyService, async_session: AsyncSession):
+async def test_get_concept_found_db(service: VocabularyService, async_session: AsyncSession) -> None:
     # Seed DB
     db_concept = Concept(
         concept_id=1,
@@ -62,18 +67,24 @@ async def test_get_concept_found_db(service: VocabularyService, async_session: A
     assert concept.concept_name == "Test Concept"
 
     # Verify Redis cache set was called
-    service.redis.set.assert_called_once()
+    # Since service.redis is Optional, we need to assert it is not None before checking calls
+    # or just rely on the fixture being used.
+    assert service.redis is not None
+    # We need to cast or ignore type for 'set' on the mock object
+    service.redis.set.assert_called_once()  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_get_concept_found_cache(service: VocabularyService):
+async def test_get_concept_found_cache(service: VocabularyService) -> None:
     # Setup cache hit - JSON structure matches Pydantic alias input (camelCase)
     cached_concept_json = (
         '{"conceptId": 2, "conceptName": "Cached Concept", "conceptCode": "54321", '
         '"domainId": "Drug", "vocabularyId": "RxNorm", "conceptClassId": "Ingredient", '
         '"validStartDate": "2020-01-01", "validEndDate": "2099-12-31"}'
     )
-    service.redis.get = AsyncMock(return_value=cached_concept_json)
+
+    assert service.redis is not None
+    service.redis.get = AsyncMock(return_value=cached_concept_json)  # type: ignore[method-assign]
 
     concept = await service.get_concept(2)
     assert concept is not None
@@ -84,7 +95,7 @@ async def test_get_concept_found_cache(service: VocabularyService):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_pagination(service: VocabularyService, async_session: AsyncSession):
+async def test_search_concepts_pagination(service: VocabularyService, async_session: AsyncSession) -> None:
     # Seed DB with multiple concepts
     for i in range(10):
         async_session.add(
@@ -115,7 +126,7 @@ async def test_search_concepts_pagination(service: VocabularyService, async_sess
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_filters(service: VocabularyService, async_session: AsyncSession):
+async def test_search_concepts_filters(service: VocabularyService, async_session: AsyncSession) -> None:
     # Seed DB
     c1 = Concept(
         concept_id=200,
@@ -141,13 +152,13 @@ async def test_search_concepts_filters(service: VocabularyService, async_session
     await async_session.commit()
 
     # Test Domain Filter
-    search = ConceptSearch(DOMAIN_ID=["Drug"])
+    search = ConceptSearch(QUERY="", DOMAIN_ID=["Drug"])
     results = await service.search_concepts(search)
     assert len(results) == 1
     assert results[0].concept_id == 200
 
     # Test Vocabulary Filter
-    search = ConceptSearch(VOCABULARY_ID=["SNOMED"])
+    search = ConceptSearch(QUERY="", VOCABULARY_ID=["SNOMED"])
     results = await service.search_concepts(search)
     assert len(results) == 1
     assert results[0].concept_id == 201
