@@ -9,7 +9,6 @@
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
 from datetime import date
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -45,17 +44,17 @@ async def test_get_concept_cache_hit(mock_session: MagicMock, mock_redis: MagicM
 
     # Mock Redis return value
     cached_concept = ConceptSchema(
-        conceptId=123,
-        conceptName="Cached Concept",
-        domainId="Drug",
-        vocabularyId="RxNorm",
-        conceptClassId="Ingredient",
-        conceptCode="123",
-        validStartDate=date(2020, 1, 1),
-        validEndDate=date(2099, 12, 31),
-        standardConcept="S"
+        concept_id=123,
+        concept_name="Cached Concept",
+        domain_id="Drug",
+        vocabulary_id="RxNorm",
+        concept_class_id="Ingredient",
+        concept_code="123",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        standard_concept="S",
     )
-    mock_redis.get.return_value = cached_concept.model_dump_json()
+    mock_redis.get.return_value = cached_concept.model_dump_json(by_alias=True)
 
     result = await service.get_concept(concept_id)
 
@@ -87,7 +86,7 @@ async def test_get_concept_db_hit(mock_session: MagicMock, mock_redis: MagicMock
         concept_code="456",
         valid_start_date=date(2021, 1, 1),
         valid_end_date=date(2099, 12, 31),
-        invalid_reason=None
+        invalid_reason=None,
     )
 
     # Mock scalar_one_or_none result
@@ -125,7 +124,7 @@ async def test_get_concept_redis_error(mock_session: MagicMock, mock_redis: Magi
         concept_class_id="Device",
         concept_code="789",
         valid_start_date=date(2022, 1, 1),
-        valid_end_date=date(2099, 12, 31)
+        valid_end_date=date(2099, 12, 31),
     )
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = db_concept
@@ -163,7 +162,7 @@ async def test_search_concepts(mock_session: MagicMock, mock_redis: MagicMock) -
             concept_class_id="Branded Drug",
             concept_code="A1",
             valid_start_date=date(2020, 1, 1),
-            valid_end_date=date(2099, 12, 31)
+            valid_end_date=date(2099, 12, 31),
         )
     ]
 
@@ -189,7 +188,7 @@ async def test_search_concepts_all_filters(mock_session: MagicMock, mock_redis: 
         VOCABULARY_ID=["RxNorm"],
         CONCEPT_CLASS_ID=["Ingredient"],
         STANDARD_CONCEPT="S",
-        INVALID_REASON="V"  # "V" maps to None check in service
+        INVALID_REASON="V",  # "V" maps to None check in service
     )
 
     mock_result = MagicMock()
@@ -206,10 +205,7 @@ async def test_search_concepts_other_filters(mock_session: MagicMock, mock_redis
     """Test search_concepts with alternative filter values."""
     service = VocabularyService(mock_session, mock_redis)
     # Testing branches: INVALID_REASON != 'V' and STANDARD_CONCEPT == 'N'
-    search_criteria = ConceptSearch(
-        INVALID_REASON="D",
-        STANDARD_CONCEPT="N"
-    )
+    search_criteria = ConceptSearch(INVALID_REASON="D", STANDARD_CONCEPT="N")
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
