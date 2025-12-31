@@ -17,12 +17,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from omop_atlas_backend.dependencies import get_db, get_redis
 from omop_atlas_backend.main import app
 from omop_atlas_backend.models.vocabulary import Concept
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 # Override dependencies for testing

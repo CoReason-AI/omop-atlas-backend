@@ -10,9 +10,8 @@
 
 from typing import cast
 
-from sqlalchemy import Table
-
 from omop_atlas_backend.models.vocabulary import Concept
+from sqlalchemy import Table
 
 
 def test_concept_indices() -> None:

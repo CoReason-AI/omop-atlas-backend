@@ -11,7 +11,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from omop_atlas_backend.dependencies import get_db, get_redis
 
 

@@ -8,7 +8,6 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-import json
 from omop_atlas_backend.cohort_definition.core import (
     DateRange,
     NumericOp,
@@ -19,7 +18,7 @@ from omop_atlas_backend.cohort_definition.core import (
 )
 
 
-def test_text_filter_serialization():
+def test_text_filter_serialization() -> None:
     tf = TextFilter(text="aspirin", op=TextOp.START_WITH)
     json_output = tf.model_dump(by_alias=True)
 
@@ -27,7 +26,7 @@ def test_text_filter_serialization():
     assert json_output["op"] == "startsWith"
 
 
-def test_text_filter_deserialization():
+def test_text_filter_deserialization() -> None:
     data = {"text": "tylenol", "op": "!contains"}
     tf = TextFilter.model_validate(data)
 
@@ -35,7 +34,7 @@ def test_text_filter_deserialization():
     assert tf.op == TextOp.NOT_CONTAINS
 
 
-def test_numeric_range_serialization():
+def test_numeric_range_serialization() -> None:
     nr = NumericRange(value=10, op=NumericOp.GT)
     json_output = nr.model_dump(by_alias=True)
 
@@ -44,7 +43,7 @@ def test_numeric_range_serialization():
     assert "extent" not in json_output or json_output["extent"] is None
 
 
-def test_numeric_range_between_serialization():
+def test_numeric_range_between_serialization() -> None:
     nr = NumericRange(value=5, op=NumericOp.BT, extent=10)
     json_output = nr.model_dump(by_alias=True)
 
@@ -53,7 +52,7 @@ def test_numeric_range_between_serialization():
     assert json_output["extent"] == 10
 
 
-def test_numeric_range_deserialization():
+def test_numeric_range_deserialization() -> None:
     data = {"value": 100, "op": "lte"}
     nr = NumericRange.model_validate(data)
 
@@ -62,7 +61,7 @@ def test_numeric_range_deserialization():
     assert nr.extent is None
 
 
-def test_date_range_serialization():
+def test_date_range_serialization() -> None:
     dr = DateRange(value="2023-01-01", op=NumericOp.EQ)
     json_output = dr.model_dump(by_alias=True)
 
@@ -70,7 +69,7 @@ def test_date_range_serialization():
     assert json_output["op"] == "eq"
 
 
-def test_period_serialization():
+def test_period_serialization() -> None:
     p = Period(start_date="2023-01-01", end_date="2023-12-31")
     json_output = p.model_dump(by_alias=True)
 
@@ -79,7 +78,7 @@ def test_period_serialization():
     assert json_output["endDate"] == "2023-12-31"
 
 
-def test_period_deserialization():
+def test_period_deserialization() -> None:
     data = {"startDate": "2022-01-01", "endDate": "2022-06-30"}
     p = Period.model_validate(data)
 
@@ -87,7 +86,7 @@ def test_period_deserialization():
     assert p.end_date == "2022-06-30"
 
 
-def test_snake_case_input_works_with_populate_by_name():
+def test_snake_case_input_works_with_populate_by_name() -> None:
     """Ensure we can instantiate models using snake_case arguments in Python"""
     p = Period(start_date="2023-01-01", end_date="2023-01-31")
     assert p.start_date == "2023-01-01"

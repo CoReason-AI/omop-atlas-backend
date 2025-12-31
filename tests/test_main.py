@@ -11,7 +11,6 @@
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-
 from omop_atlas_backend.main import app, hello_world
 
 

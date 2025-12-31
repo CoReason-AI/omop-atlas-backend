@@ -11,8 +11,6 @@
 from enum import StrEnum
 from typing import Optional, Union
 
-from pydantic import Field
-
 from omop_atlas_backend.cohort_definition.base import CirceModel
 
 
