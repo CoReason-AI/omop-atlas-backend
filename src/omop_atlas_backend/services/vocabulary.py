@@ -77,7 +77,10 @@ class VocabularyService:
                 # Java: LOWER(CONCEPT_NAME) LIKE '%@query%' or LOWER(CONCEPT_CODE) LIKE '%@query%'
                 # If numeric: or CONCEPT_ID = CAST(@query as int)
 
-                filters = [Concept.concept_name.ilike(f"%{query_str}%"), Concept.concept_code.ilike(f"%{query_str}%")]
+                filters: List[ColumnElement[bool]] = [
+                    Concept.concept_name.ilike(f"%{query_str}%"),
+                    Concept.concept_code.ilike(f"%{query_str}%"),
+                ]
 
                 if query_str.isdigit():
                     filters.append(Concept.concept_id == int(query_str))
@@ -128,4 +131,4 @@ class VocabularyService:
             # Use by_alias=True to get camelCase keys which matches what we expect in cache/API
             await redis.set(cache_key, schema_model.model_dump_json(by_alias=True))
 
-        return concept  # type: ignore[no-any-return]
+        return concept
