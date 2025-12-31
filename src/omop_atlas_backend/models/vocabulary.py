@@ -12,11 +12,9 @@ from datetime import date
 from typing import Optional
 
 from sqlalchemy import Date, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
-
-class Base(DeclarativeBase):
-    pass
+from omop_atlas_backend.models.base import Base
 
 
 class Concept(Base):
