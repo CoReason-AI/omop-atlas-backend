@@ -10,7 +10,7 @@
 
 import json
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,7 +74,7 @@ async def test_get_concept_found_cache(async_session: AsyncSession, mock_redis: 
         "concept_code": "C2",
         "valid_start_date": "2020-01-01",
         "valid_end_date": "2099-12-31",
-        "invalid_reason": None
+        "invalid_reason": None,
     }
     mock_redis.get.return_value = json.dumps(cached_data)
 

@@ -12,11 +12,12 @@ import json
 from typing import List, Optional
 
 from redis.asyncio import Redis
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from omop_atlas_backend.models.vocabulary import Concept
-from omop_atlas_backend.schemas.concept import ConceptSearch, Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
+from omop_atlas_backend.schemas.concept import ConceptSearch
 
 
 class VocabularyService:
@@ -25,7 +26,7 @@ class VocabularyService:
     Implements optimized search and Redis caching for concept lookups.
     """
 
-    def __init__(self, session: AsyncSession, redis_client: Optional[Redis] = None):
+    def __init__(self, session: AsyncSession, redis_client: Optional[Redis] = None):  # type: ignore[type-arg]
         self.session = session
         self.redis = redis_client
         self.cache_ttl = 86400  # 24 hours
@@ -46,20 +47,7 @@ class VocabularyService:
         if self.redis:
             cached_data = await self.redis.get(cache_key)
             if cached_data:
-                # Deserialize from JSON to Concept schema, then to Model if needed
-                # However, for read-only purposes, returning the Model is typical for services.
-                # But since we cache JSON, we might need to reconstruct the object.
-                # Let's reconstruct a transient Concept object.
                 data = json.loads(cached_data)
-                # Using Pydantic to parse, then we can convert to SQLAlchemy model or return Pydantic.
-                # The service usually returns Models or Schemas.
-                # Given the method signature returns Optional[Concept] (SQLAlchemy model),
-                # we should try to return that.
-                # For simplicity in this atomic unit, let's reconstruct the minimal Concept.
-                # Or better, let's just return the object found in DB.
-                # Wait, if we return a transient SQLAlchemy object it might not work well if attached to session is expected.
-                # But for read-only it is fine.
-                # Let's map dictionary to Concept.
                 return Concept(**data)
 
         # Cache miss, query DB
@@ -72,11 +60,7 @@ class VocabularyService:
             # Serialize using Pydantic Schema for consistency
             schema = ConceptSchema.model_validate(concept)
             # Use by_alias=False (snake_case) for easy reconstruction in Python
-            await self.redis.set(
-                cache_key,
-                schema.model_dump_json(by_alias=False),
-                ex=self.cache_ttl
-            )
+            await self.redis.set(cache_key, schema.model_dump_json(by_alias=False), ex=self.cache_ttl)
 
         return concept
 
@@ -97,12 +81,7 @@ class VocabularyService:
         if search.query:
             query_str = f"%{search.query}%"
             # Using ILIKE for case-insensitive search
-            stmt = stmt.where(
-                or_(
-                    Concept.concept_name.ilike(query_str),
-                    Concept.concept_code.ilike(query_str)
-                )
-            )
+            stmt = stmt.where(or_(Concept.concept_name.ilike(query_str), Concept.concept_code.ilike(query_str)))
 
         # Filter by Domain
         if search.domain_id:
