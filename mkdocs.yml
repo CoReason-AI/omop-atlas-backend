@@ -1,0 +1,5 @@
+site_name: omop_atlas_backend
+theme:
+  name: material
+nav:
+  - Home: index.md
