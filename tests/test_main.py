@@ -8,13 +8,9 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from contextlib import asynccontextmanager
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from omop_atlas_backend.main import app, hello_world
 
 

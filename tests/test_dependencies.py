@@ -11,7 +11,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from omop_atlas_backend.dependencies import get_db, get_redis
 
 
@@ -19,14 +18,14 @@ from omop_atlas_backend.dependencies import get_db, get_redis
 async def test_get_db() -> None:
     """Test get_db yields a session."""
     mock_session = AsyncMock()
-    mock_maker = AsyncMock(return_value=mock_session)
     # The async generator yields the session object returned by the context manager
-    mock_session.__aenter__.return_value = "session"
+    expected_session = AsyncMock()
+    mock_session.__aenter__.return_value = expected_session
 
     with patch("omop_atlas_backend.dependencies.async_session_maker", return_value=mock_session):
         gen = get_db()
         session = await anext(gen)
-        assert session == "session"
+        assert session is expected_session
 
 
 @pytest.mark.asyncio
@@ -48,7 +47,8 @@ async def test_get_redis() -> None:
         except StopAsyncIteration:
             pass
 
-        assert mock_client.aclose.called
+        assert mock_client.close.called
+
 
 @pytest.mark.asyncio
 async def test_get_redis_failure() -> None:

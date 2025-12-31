@@ -8,6 +8,8 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from __future__ import annotations
+
 from typing import List, Optional
 
 from omop_atlas_backend.models.vocabulary import Concept
@@ -105,7 +107,7 @@ class VocabularyService:
     async def get_concept(
         concept_id: int,
         session: AsyncSession,
-        redis: Optional[Redis] = None,
+        redis: Optional["Redis[str]"] = None,
     ) -> Optional[Concept]:
         cache_key = f"conceptDetail:{concept_id}"
 

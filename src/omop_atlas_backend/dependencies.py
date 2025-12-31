@@ -8,6 +8,8 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from __future__ import annotations
+
 import os
 from typing import AsyncGenerator, Optional
 
@@ -19,10 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # For now I will construct a URL or just use a placeholder string that assumes env vars are set.
 # But for the app to actually run or for my tests to mock it, I need structure.
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -34,10 +33,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-async def get_redis() -> AsyncGenerator[Optional[Redis], None]:
+async def get_redis() -> AsyncGenerator[Optional["Redis[str]"], None]:
     # Return None if REDIS_URL is not set or valid, or just return the client.
     # The service handles Optional[Redis].
-    client: Optional[Redis] = None
+    client: Optional["Redis[str]"] = None
     try:
         client = Redis.from_url(REDIS_URL, decode_responses=True)
     except Exception:
@@ -49,4 +48,4 @@ async def get_redis() -> AsyncGenerator[Optional[Redis], None]:
     try:
         yield client
     finally:
-        await client.aclose()
+        await client.close()

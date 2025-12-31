@@ -8,6 +8,8 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from __future__ import annotations
+
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,7 +28,7 @@ async def search_concepts(
     search: ConceptSearch,
     limit: int = Query(20000, ge=1),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_db),
+    session: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> List[ConceptSchema]:
     """
     Search for concepts in the vocabulary.
@@ -38,8 +40,8 @@ async def search_concepts(
 @router.get("/concept/{id}", response_model=ConceptSchema, response_model_by_alias=True)
 async def get_concept(
     id: int,
-    session: AsyncSession = Depends(get_db),
-    redis: Optional[Redis] = Depends(get_redis),
+    session: AsyncSession = Depends(get_db),  # noqa: B008
+    redis: Optional["Redis[str]"] = Depends(get_redis),  # noqa: B008
 ) -> ConceptSchema:
     """
     Get a concept by ID, utilizing Redis cache if available.
