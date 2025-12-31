@@ -16,6 +16,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Phase 2: Vocabulary Engine
 class Concept(BaseModel):
+    """
+    Pydantic model for Concept.
+    Uses 'alias' to support camelCase JSON output, compatible with ATLAS.
+    """
+
     # Field aliases are for JSON input/output (camelCase to match ATLAS)
     # Python attributes are snake_case to match SQLAlchemy models
     concept_id: int = Field(alias="conceptId")
@@ -33,6 +38,11 @@ class Concept(BaseModel):
 
 
 class ConceptSearch(BaseModel):
+    """
+    Pydantic model for Concept Search criteria.
+    Uses 'alias' to map uppercase JSON keys from ATLAS requests to snake_case python attributes.
+    """
+
     # Using aliases to map uppercase JSON keys to snake_case python attributes
     query: str = Field("", alias="QUERY")
     domain_id: List[str] = Field(default_factory=list, alias="DOMAIN_ID")

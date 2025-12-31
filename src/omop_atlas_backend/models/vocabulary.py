@@ -19,6 +19,11 @@ from omop_atlas_backend.models.base import Base
 
 # Phase 2: Vocabulary Engine
 class Concept(Base):
+    """
+    Standard OMOP CDM Concept table.
+    Contains the fundamental vocabulary data (SNOMED, RxNorm, etc.).
+    """
+
     __tablename__ = "concept"
     __table_args__ = (
         Index("ix_concept_vocabulary_id", "vocabulary_id"),
@@ -43,6 +48,11 @@ class Concept(Base):
 
 
 class Vocabulary(Base):
+    """
+    OMOP CDM Vocabulary table.
+    Defines the source vocabularies (e.g., 'SNOMED', 'ICD10').
+    """
+
     __tablename__ = "vocabulary"
 
     vocabulary_id: Mapped[str] = mapped_column(String(20), primary_key=True)
@@ -53,6 +63,11 @@ class Vocabulary(Base):
 
 
 class Domain(Base):
+    """
+    OMOP CDM Domain table.
+    Categorizes concepts into high-level domains (e.g., 'Condition', 'Drug').
+    """
+
     __tablename__ = "domain"
 
     domain_id: Mapped[str] = mapped_column(String(20), primary_key=True)
@@ -61,6 +76,11 @@ class Domain(Base):
 
 
 class ConceptClass(Base):
+    """
+    OMOP CDM Concept Class table.
+    Further categorizes concepts within a vocabulary (e.g., 'Ingredient', 'Clinical Finding').
+    """
+
     __tablename__ = "concept_class"
 
     concept_class_id: Mapped[str] = mapped_column(String(20), primary_key=True)

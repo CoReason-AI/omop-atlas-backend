@@ -21,6 +21,11 @@ from omop_atlas_backend.schemas.concept import ConceptSearch
 
 # Phase 2: Vocabulary Engine
 class VocabularyService:
+    """
+    Service for Vocabulary operations: Searching and Retrieving Concepts.
+    Includes Redis caching for high-performance single-concept lookups.
+    """
+
     def __init__(self, db: AsyncSession, redis: Optional["Redis[str]"]):
         self.db = db
         self.redis = redis
@@ -28,6 +33,9 @@ class VocabularyService:
     async def get_concept(self, concept_id: int) -> Optional[ConceptSchema]:
         """
         Get a concept by ID. First checks Redis cache, then DB.
+
+        :param concept_id: The OMOP Concept ID.
+        :return: ConceptSchema if found, else None.
         """
         cache_key = f"concept:{concept_id}"
         cached_data = None
@@ -59,6 +67,12 @@ class VocabularyService:
     async def search_concepts(self, search: ConceptSearch, limit: int = 20000, offset: int = 0) -> List[ConceptSchema]:
         """
         Search concepts based on criteria with pagination.
+        Uses ILIKE for case-insensitive matching on Name and Code.
+
+        :param search: ConceptSearch criteria (query, filters).
+        :param limit: Max number of results (default 20,000).
+        :param offset: Pagination offset.
+        :return: List of ConceptSchema.
         """
         stmt = select(Concept)
 
