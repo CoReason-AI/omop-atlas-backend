@@ -8,6 +8,8 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+# Phase 2: Vocabulary Engine - Service Layer
+
 from typing import List, Optional
 
 from redis.asyncio import Redis
