@@ -28,6 +28,10 @@ class VocabularyService:
     async def search_concepts(
         search: ConceptSearch, session: AsyncSession, limit: int = DEFAULT_SEARCH_ROWS, offset: int = 0
     ) -> List[Concept]:
+        """
+        Search for concepts using the provided criteria.
+        Uses optimized async SQL queries with pagination.
+        """
         stmt = select(Concept)
 
         # Domain ID Filter
