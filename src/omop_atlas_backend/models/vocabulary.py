@@ -8,8 +8,6 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-# Phase 2: Vocabulary Engine - Read-Only Models
-
 from datetime import date
 from typing import Optional
 
@@ -19,7 +17,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from omop_atlas_backend.models.base import Base
 
 
-# Phase 2: Vocabulary Engine
 class Concept(Base):
     """
     Standard OMOP CDM Concept table.
