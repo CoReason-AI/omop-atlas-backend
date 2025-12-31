@@ -11,7 +11,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import String, Date, Integer
+from sqlalchemy import Date, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 

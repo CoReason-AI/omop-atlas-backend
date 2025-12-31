@@ -8,14 +8,15 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-import sys
 import importlib
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from omop_atlas_backend.utils import logger as logger_module
 from omop_atlas_backend.utils.logger import logger
 
-def test_logger_initialization():
+
+def test_logger_initialization() -> None:
     """Test that the logger is initialized correctly and creates the log directory."""
     # Since the logger is initialized on import, we check side effects
 
@@ -27,15 +28,18 @@ def test_logger_initialization():
     assert log_path.exists()
     assert log_path.is_dir()
 
-def test_logger_exports():
+
+def test_logger_exports() -> None:
     """Test that logger is exported."""
     assert logger is not None
 
-def test_logger_creates_directory():
+
+def test_logger_creates_directory() -> None:
     """Test that the logger creates the directory if it doesn't exist."""
     with patch("pathlib.Path") as MockPath:
         mock_path_instance = MockPath.return_value
-        # First call to exists() returns False (check), subsequent calls might matter but only first matters for if block
+        # First call to exists() returns False (check)
+        # subsequent calls might matter but only first matters for if block
         mock_path_instance.exists.return_value = False
 
         # Reload the module to trigger the code at module level

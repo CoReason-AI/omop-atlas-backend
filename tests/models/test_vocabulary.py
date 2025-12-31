@@ -8,13 +8,17 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-import pytest
 from datetime import date
+
+import pytest
 from sqlalchemy import select
-from src.omop_atlas_backend.models.vocabulary import Base, Concept, Vocabulary, Domain, ConceptClass
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+
+from omop_atlas_backend.models.vocabulary import Base, Concept, ConceptClass, Domain, Vocabulary
+
 
 @pytest.mark.asyncio
-async def test_vocabulary_models_creation(async_engine, async_session):
+async def test_vocabulary_models_creation(async_engine: AsyncEngine, async_session: AsyncSession) -> None:
     # Create tables
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -30,7 +34,7 @@ async def test_vocabulary_models_creation(async_engine, async_session):
         concept_code="12345",
         valid_start_date=date(2020, 1, 1),
         valid_end_date=date(2099, 12, 31),
-        invalid_reason=None
+        invalid_reason=None,
     )
     async_session.add(concept)
 
@@ -40,47 +44,41 @@ async def test_vocabulary_models_creation(async_engine, async_session):
         vocabulary_name="SNOMED Clinical Terms",
         vocabulary_reference="http://snomed.info",
         vocabulary_version="2023-01",
-        vocabulary_concept_id=44819096
+        vocabulary_concept_id=44819096,
     )
     async_session.add(vocab)
 
     # Test Domain Model
-    domain = Domain(
-        domain_id="Condition",
-        domain_name="Condition",
-        domain_concept_id=19
-    )
+    domain = Domain(domain_id="Condition", domain_name="Condition", domain_concept_id=19)
     async_session.add(domain)
 
     # Test ConceptClass Model
     c_class = ConceptClass(
-        concept_class_id="Clinical Finding",
-        concept_class_name="Clinical Finding",
-        concept_class_concept_id=123
+        concept_class_id="Clinical Finding", concept_class_name="Clinical Finding", concept_class_concept_id=123
     )
     async_session.add(c_class)
 
     await async_session.commit()
 
     # Query back to verify
-    stmt = select(Concept).where(Concept.concept_id == 1)
-    result = await async_session.execute(stmt)
-    fetched_concept = result.scalar_one()
+    stmt_concept = select(Concept).where(Concept.concept_id == 1)
+    res_concept = await async_session.execute(stmt_concept)
+    fetched_concept = res_concept.scalar_one()
 
     assert fetched_concept.concept_name == "Test Concept"
     assert fetched_concept.valid_start_date == date(2020, 1, 1)
 
-    stmt = select(Vocabulary).where(Vocabulary.vocabulary_id == "SNOMED")
-    result = await async_session.execute(stmt)
-    fetched_vocab = result.scalar_one()
+    stmt_vocab = select(Vocabulary).where(Vocabulary.vocabulary_id == "SNOMED")
+    res_vocab = await async_session.execute(stmt_vocab)
+    fetched_vocab = res_vocab.scalar_one()
     assert fetched_vocab.vocabulary_name == "SNOMED Clinical Terms"
 
-    stmt = select(Domain).where(Domain.domain_id == "Condition")
-    result = await async_session.execute(stmt)
-    fetched_domain = result.scalar_one()
+    stmt_domain = select(Domain).where(Domain.domain_id == "Condition")
+    res_domain = await async_session.execute(stmt_domain)
+    fetched_domain = res_domain.scalar_one()
     assert fetched_domain.domain_name == "Condition"
 
-    stmt = select(ConceptClass).where(ConceptClass.concept_class_id == "Clinical Finding")
-    result = await async_session.execute(stmt)
-    fetched_class = result.scalar_one()
+    stmt_class = select(ConceptClass).where(ConceptClass.concept_class_id == "Clinical Finding")
+    res_class = await async_session.execute(stmt_class)
+    fetched_class = res_class.scalar_one()
     assert fetched_class.concept_class_name == "Clinical Finding"

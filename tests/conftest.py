@@ -8,20 +8,21 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator
 
 import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
 
 @pytest_asyncio.fixture
-async def async_engine():
+async def async_engine() -> AsyncGenerator[AsyncEngine, None]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     yield engine
     await engine.dispose()
 
+
 @pytest_asyncio.fixture
-async def async_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
+async def async_session(async_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
     async with async_session_maker() as session:
         yield session
