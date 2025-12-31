@@ -143,4 +143,4 @@ class VocabularyService:
             # Use by_alias=True to get camelCase keys which matches what we expect in cache/API
             await redis.set(cache_key, schema_model.model_dump_json(by_alias=True))
 
-        return concept  # type: ignore[no-any-return]
+        return concept
