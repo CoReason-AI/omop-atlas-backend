@@ -8,6 +8,10 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
+from typing import cast
+
+from sqlalchemy import Table
+
 from omop_atlas_backend.models.vocabulary import Concept
 
 
@@ -16,7 +20,8 @@ def test_concept_indices() -> None:
     Verify that the Concept model has the expected indices defined.
     """
     # Access the Table object via __table__
-    table = Concept.__table__
+    # Mypy treats __table__ as FromClause which doesn't expose indexes, so we cast to Table
+    table = cast(Table, Concept.__table__)
     indexes = table.indexes
 
     # Create a set of index names for easier assertion
