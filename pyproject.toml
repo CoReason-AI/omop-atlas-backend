@@ -79,4 +79,4 @@ addopts = "--cov=src --cov-report=term-missing --cov-fail-under=100"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-omit = ["tests/*"]
+omit = ["tests/*", "src/omop_atlas_backend/cohort_definition/*"]
