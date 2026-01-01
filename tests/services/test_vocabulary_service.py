@@ -265,16 +265,55 @@ async def test_search_concepts_filters_logic(service: VocabularyService, mock_db
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_all_filters_coverage(service: VocabularyService, mock_db: AsyncMock) -> None:
+async def test_search_concepts_branch_standard_concept_else(service: VocabularyService, mock_db: AsyncMock) -> None:
     """
-    Test remaining filter branches for 100% coverage.
+    Test the else branch of standard_concept filter (standard_concept != 'N')
     """
-    # Test: Concept Class ID list, Standard Concept != 'N', Invalid Reason != 'V'
+    search = ConceptSearch(QUERY="", STANDARD_CONCEPT="S")
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    await service.search_concepts(search)
+
+    call_args = mock_db.execute.call_args
+    stmt = call_args[0][0]
+
+    # Should contain standard_concept = ... (not IS NULL)
+    assert "standard_concept =" in str(stmt) or "standard_concept = :standard_concept" in str(stmt)
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_branch_invalid_reason_else(service: VocabularyService, mock_db: AsyncMock) -> None:
+    """
+    Test the else branch of invalid_reason filter (invalid_reason != 'V')
+    """
+    search = ConceptSearch(QUERY="", INVALID_REASON="D")
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    await service.search_concepts(search)
+
+    call_args = mock_db.execute.call_args
+    stmt = call_args[0][0]
+
+    # Should contain invalid_reason = ... (not IS NULL)
+    assert "invalid_reason =" in str(stmt) or "invalid_reason = :invalid_reason" in str(stmt)
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_list_filters(service: VocabularyService, mock_db: AsyncMock) -> None:
+    """
+    Test filters that accept lists: vocabulary_id, domain_id, concept_class_id.
+    """
     search = ConceptSearch(
         QUERY="",
+        VOCABULARY_ID=["SNOMED", "RxNorm"],
+        DOMAIN_ID=["Drug"],
         CONCEPT_CLASS_ID=["Ingredient"],
-        STANDARD_CONCEPT="S",
-        INVALID_REASON="D",
     )
 
     mock_result = MagicMock()
@@ -287,9 +326,6 @@ async def test_search_concepts_all_filters_coverage(service: VocabularyService, 
     stmt = call_args[0][0]
     sql_str = str(stmt)
 
-    # Check Concept Class IN clause
+    assert "vocabulary_id IN" in sql_str
+    assert "domain_id IN" in sql_str
     assert "concept_class_id IN" in sql_str
-    # Check Standard Concept equality (not IS NULL)
-    assert "standard_concept =" in sql_str or "standard_concept = :standard_concept" in sql_str
-    # Check Invalid Reason equality (not IS NULL)
-    assert "invalid_reason =" in sql_str or "invalid_reason = :invalid_reason" in sql_str
