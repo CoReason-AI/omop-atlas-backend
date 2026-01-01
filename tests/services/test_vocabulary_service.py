@@ -132,7 +132,7 @@ async def test_get_concept_by_id_redis_failure_fallback(
     service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
 ) -> None:
     """
-    Test that if Redis fails, the service falls back to DB transparently.
+    Test that if Redis fails during get, the service falls back to DB transparently.
     """
     mock_redis.get.side_effect = Exception("Redis is down")
 
@@ -159,6 +159,39 @@ async def test_get_concept_by_id_redis_failure_fallback(
     mock_redis.get.assert_called_once()
     # Should have executed DB query despite Redis error
     mock_db.execute.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_concept_by_id_redis_set_failure(
+    service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
+) -> None:
+    """
+    Test that if Redis fails during set, the service continues without error.
+    """
+    mock_redis.get.return_value = None
+    mock_redis.set.side_effect = Exception("Redis write failed")
+
+    mock_concept_model = ConceptModel(
+        concept_id=4,
+        concept_name="Write Fail Concept",
+        domain_id="Meas",
+        vocabulary_id="LOINC",
+        concept_class_id="Lab Test",
+        standard_concept="S",
+        concept_code="11111",
+        valid_start_date=date(2000, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.first.return_value = mock_concept_model
+    mock_db.execute.return_value = mock_result
+
+    result = await service.get_concept_by_id(4)
+
+    assert result.concept_id == 4
+    # Should have tried set
+    mock_redis.set.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -229,3 +262,34 @@ async def test_search_concepts_filters_logic(service: VocabularyService, mock_db
     call_args = mock_db.execute.call_args
     stmt = call_args[0][0]
     assert "standard_concept IS NULL" in str(stmt)
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_all_filters_coverage(service: VocabularyService, mock_db: AsyncMock) -> None:
+    """
+    Test remaining filter branches for 100% coverage.
+    """
+    # Test: Concept Class ID list, Standard Concept != 'N', Invalid Reason != 'V'
+    search = ConceptSearch(
+        QUERY="",
+        CONCEPT_CLASS_ID=["Ingredient"],
+        STANDARD_CONCEPT="S",
+        INVALID_REASON="D",
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    await service.search_concepts(search)
+
+    call_args = mock_db.execute.call_args
+    stmt = call_args[0][0]
+    sql_str = str(stmt)
+
+    # Check Concept Class IN clause
+    assert "concept_class_id IN" in sql_str
+    # Check Standard Concept equality (not IS NULL)
+    assert "standard_concept =" in sql_str or "standard_concept = :standard_concept" in sql_str
+    # Check Invalid Reason equality (not IS NULL)
+    assert "invalid_reason =" in sql_str or "invalid_reason = :invalid_reason" in sql_str
