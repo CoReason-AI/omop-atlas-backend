@@ -11,6 +11,7 @@
 """
 Phase 2: Vocabulary Engine - Schemas
 Pydantic models for serializing Concept search results and API responses.
+Matches OHDSI ATLAS API contract (camelCase JSON).
 """
 
 from datetime import date
