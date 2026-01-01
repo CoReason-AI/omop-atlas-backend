@@ -60,6 +60,6 @@ def test_concept_search_defaults() -> None:
     """Test default values for ConceptSearch."""
     search = ConceptSearch()
     assert search.query == ""
-    assert search.domain_id == []
-    assert search.vocabulary_id == []
+    assert search.domain_id is None
+    assert search.vocabulary_id is None
     assert search.is_lexical is False
