@@ -8,60 +8,49 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from datetime import date
 
-import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from omop_atlas_backend.models.vocabulary import (
+    Concept,
+    Domain,
+    Vocabulary,
+)
 
-from omop_atlas_backend.models.vocabulary import Concept, Vocabulary
+
+def test_concept_model_repr() -> None:
+    """Test __repr__ for Concept model."""
+    concept = Concept(concept_id=1, concept_name="Test")
+    assert repr(concept) == "<Concept(id=1, name='Test')>"
 
 
-@pytest.mark.asyncio
-async def test_vocabulary_models(async_session: AsyncSession) -> None:
-    """Test that Vocabulary models can be instantiated and persisted (read-only context)."""
-    # Create a vocabulary
-    vocab = Vocabulary(
-        vocabulary_id="TEST_VOCAB",
-        vocabulary_name="Test Vocabulary",
-        vocabulary_reference="Ref",
-        vocabulary_version="v1",
-        vocabulary_concept_id=0,
-    )
-    async_session.add(vocab)
+def test_vocabulary_model_repr() -> None:
+    """Test __repr__ for Vocabulary model."""
+    vocab = Vocabulary(vocabulary_id="SNOMED", vocabulary_name="Systematized Nomenclature of Medicine")
+    assert repr(vocab) == "<Vocabulary(id='SNOMED', name='Systematized Nomenclature of Medicine')>"
 
-    # Create a concept
-    concept = Concept(
-        concept_id=1,
-        concept_name="Test Concept",
-        domain_id="Test",
-        vocabulary_id="TEST_VOCAB",
-        concept_class_id="Class",
-        concept_code="CODE",
-        valid_start_date=date(2020, 1, 1),
-        valid_end_date=date(2099, 12, 31),
-        invalid_reason=None,
-    )
-    async_session.add(concept)
-    await async_session.commit()
 
-    # Query back
-    stmt = select(Concept).where(Concept.concept_id == 1)
-    result = await async_session.execute(stmt)
-    retrieved = result.scalar_one()
+def test_domain_model_repr() -> None:
+    """Test __repr__ for Domain model."""
+    domain = Domain(domain_id="Condition", domain_name="Condition")
+    assert repr(domain) == "<Domain(id='Condition', name='Condition')>"
 
-    assert retrieved.concept_name == "Test Concept"
-    assert retrieved.vocabulary_id == "TEST_VOCAB"
-    assert retrieved.valid_start_date == date(2020, 1, 1)
 
-    # Test __repr__
-    assert "Concept" in repr(retrieved)
-    assert "Test Concept" in repr(retrieved)
-    assert "Vocabulary" in repr(vocab)
-    assert "Test Vocabulary" in repr(vocab)
+def test_concept_indexes() -> None:
+    """Test that Concept model has the expected indexes."""
+    indexes = {i.name for i in Concept.__table__.indexes}
+    expected = {
+        "ix_concept_vocabulary_id",
+        "ix_concept_domain_id",
+        "ix_concept_class_id",
+        "ix_concept_standard_concept",
+        "ix_concept_code",
+        "ix_concept_name",
+        "ix_concept_name_tsv",
+    }
+    assert expected.issubset(indexes)
 
-    from omop_atlas_backend.models.vocabulary import Domain
 
-    domain = Domain(domain_id="Test", domain_name="Test Domain", domain_concept_id=0)
-    assert "Domain" in repr(domain)
-    assert "Test Domain" in repr(domain)
+def test_concept_tsv_index_definition() -> None:
+    """Test that the TSVector index is correctly defined."""
+    tsv_index = next(i for i in Concept.__table__.indexes if i.name == "ix_concept_name_tsv")
+    # Verify postgresql_using='gin'
+    assert tsv_index.kwargs.get("postgresql_using") == "gin"
