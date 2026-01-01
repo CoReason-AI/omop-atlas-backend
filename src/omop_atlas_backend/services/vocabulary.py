@@ -105,14 +105,14 @@ class VocabularyService:
 
         if search.standard_concept:
             # OMOP Convention: 'N' (Non-standard) often maps to NULL in standard_concept column
-            if search.standard_concept == 'N':
+            if search.standard_concept == "N":
                 stmt = stmt.where(ConceptModel.standard_concept.is_(None))
             else:
                 stmt = stmt.where(ConceptModel.standard_concept == search.standard_concept)
 
         if search.invalid_reason:
             # OMOP Convention: 'V' (Valid) maps to NULL in invalid_reason column
-            if search.invalid_reason == 'V':
+            if search.invalid_reason == "V":
                 stmt = stmt.where(ConceptModel.invalid_reason.is_(None))
             else:
                 stmt = stmt.where(ConceptModel.invalid_reason == search.invalid_reason)
