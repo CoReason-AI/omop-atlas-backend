@@ -11,6 +11,7 @@
 """
 Phase 2: Vocabulary Engine - Service
 Handles high-performance search and retrieval of OMOP Concepts.
+Includes Redis caching and Postgres Full Text Search optimization.
 """
 
 from typing import List, Optional

@@ -11,6 +11,7 @@
 """
 Phase 2: Vocabulary Engine - Models
 Defines the read-only SQLAlchemy models for the OMOP CDM Vocabulary tables.
+Implemented: Concept, Vocabulary, Domain, ConceptClass, ConceptAncestor, ConceptRelationship, Relationship.
 """
 
 from datetime import date
