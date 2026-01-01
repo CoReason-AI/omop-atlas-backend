@@ -158,6 +158,143 @@ async def test_search_concepts_invalid_reason_v(vocabulary_service: VocabularySe
 
 
 @pytest.mark.asyncio
+async def test_search_concepts_standard_concept_mapping(
+    vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept
+) -> None:
+    """Test that standard_concept 'N' maps to NULL."""
+    # Create non-standard concept (NULL standard_concept)
+    c_non_standard = Concept(
+        concept_id=2,
+        concept_name="Non Standard",
+        domain_id="Condition",
+        vocabulary_id="SNOMED",
+        concept_class_id="Clinical Finding",
+        standard_concept=None,  # This maps to 'N' in search
+        concept_code="456",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        invalid_reason=None,
+    )
+    db_session.add(c_non_standard)
+    await db_session.commit()
+
+    search = ConceptSearch(STANDARD_CONCEPT="N")
+    results = await vocabulary_service.search_concepts(search)
+    assert len(results) >= 1
+    found = any(c.concept_id == 2 for c in results)
+    assert found
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_invalid_reason_mapping(
+    vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept
+) -> None:
+    """Test that invalid_reason 'V' maps to NULL."""
+    # seed_data has invalid_reason=None, which corresponds to 'V' (Valid)
+    search = ConceptSearch(INVALID_REASON="V")
+    results = await vocabulary_service.search_concepts(search)
+    assert len(results) >= 1
+    found = any(c.concept_id == 1 for c in results)
+    assert found
+
+    # Add an invalid one
+    c_invalid = Concept(
+        concept_id=3,
+        concept_name="Invalid Concept",
+        domain_id="Condition",
+        vocabulary_id="SNOMED",
+        concept_class_id="Clinical Finding",
+        standard_concept="S",
+        concept_code="789",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        invalid_reason="D",  # Deleted
+    )
+    db_session.add(c_invalid)
+    await db_session.commit()
+
+    # Search for V should NOT find the invalid one
+    search_v = ConceptSearch(INVALID_REASON="V")
+    results_v = await vocabulary_service.search_concepts(search_v)
+    assert not any(c.concept_id == 3 for c in results_v)
+
+    # Search for D should find it
+    search_d = ConceptSearch(INVALID_REASON="D")
+    results_d = await vocabulary_service.search_concepts(search_d)
+    assert any(c.concept_id == 3 for c in results_d)
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_postgres_fts_path(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
+    """Test the Postgres FTS code path by mocking the dialect name."""
+    from unittest.mock import MagicMock
+
+    # Mock the dialect name on the session bind
+    # Note: accessing db.bind.dialect.name
+    # vocabulary_service.db is the session.
+    # We need to mock the bind (Engine/Connection) and its dialect.
+
+    # Since we are using an actual AsyncSession with SQLite, mocking the bind is tricky
+    # without breaking the session. However, the service code checks:
+    # dialect_name = self.db.bind.dialect.name if self.db.bind else "postgresql"
+
+    # We can temporarily mock self.db.bind.dialect.name
+    original_bind = vocabulary_service.db.bind
+
+    # Create a mock bind with dialect.name = "postgresql"
+    mock_bind = MagicMock()
+    mock_bind.dialect.name = "postgresql"
+
+    # We cannot easily replace the bind on an active session.
+    # But we can subclass/wrap the session or just mock the property if possible.
+    # Alternatively, we can instantiate the service with a Mock session that delegates execute to the real one
+    # but reports a different dialect.
+
+    # Let's try mocking the attribute access on the bind if it's not None
+    if original_bind:
+        # This is harder because original_bind is a real object.
+        pass
+
+    # Better approach: Mock the db session passed to the service ONLY for checking the dialect
+    # But we want the execute() to run against the real SQLite DB to see if it generates SQL.
+    # Wait, SQLite won't understand `to_tsvector`. So if we force the Postgres path,
+    # the query execution WILL FAIL on SQLite.
+    # That is actually a GOOD test that we hit the Postgres path!
+    # So we expect an OperationalError from SQLite when it sees to_tsvector.
+
+    # Create a wrapper or mock for the session
+    real_session = vocabulary_service.db
+
+    # Create a proxy that returns "postgresql" for bind.dialect.name
+    # but delegates execute to real_session.
+    class SessionProxy:
+        bind = MagicMock()
+        bind.dialect.name = "postgresql"
+
+        async def execute(self, stmt):
+            return await real_session.execute(stmt)
+
+    # Swap the session
+    vocabulary_service.db = SessionProxy()  # type: ignore
+
+    search = ConceptSearch(QUERY="Test")
+
+    # This should fail because SQLite doesn't support to_tsvector
+    # If it fails with "no such function: to_tsvector", we know we hit the Postgres path.
+    from sqlalchemy.exc import OperationalError
+
+    with pytest.raises(OperationalError) as excinfo:
+        await vocabulary_service.search_concepts(search)
+
+    # SQLite might complain about '@' token (unrecognized) or 'to_tsvector' function
+    error_msg = str(excinfo.value)
+    assert "no such function: to_tsvector" in error_msg or 'unrecognized token: "@"' in error_msg
+
+    # Restore session
+    vocabulary_service.db = real_session
+
+
+@pytest.mark.asyncio
 async def test_redis_caching(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     # Mock redis
     from unittest.mock import AsyncMock, MagicMock
