@@ -12,11 +12,8 @@ from omop_atlas_backend.models.base import Base
 from omop_atlas_backend.models.security import Permission, Role, User
 from omop_atlas_backend.models.vocabulary import (
     Concept,
-    ConceptAncestor,
     ConceptClass,
-    ConceptRelationship,
     Domain,
-    Relationship,
     Vocabulary,
 )
 
@@ -26,9 +23,6 @@ __all__ = [
     "Vocabulary",
     "Domain",
     "ConceptClass",
-    "ConceptAncestor",
-    "ConceptRelationship",
-    "Relationship",
     "User",
     "Role",
     "Permission",
