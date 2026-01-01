@@ -32,9 +32,24 @@ async def search_concepts(
     service: VocabularyService = Depends(get_vocabulary_service),  # noqa: B008
 ) -> List[ConceptSchema]:
     """
-    Search for concepts in the vocabulary.
+    Search for concepts in the vocabulary (POST).
     """
     # Service now returns List[ConceptSchema]
+    return await service.search_concepts(search, limit, offset)
+
+
+@router.get("/search", response_model=List[ConceptSchema], response_model_by_alias=True)
+async def search_concepts_get(
+    search: ConceptSearch = Depends(),  # noqa: B008
+    limit: int = Query(20000, ge=1),
+    offset: int = Query(0, ge=0),
+    service: VocabularyService = Depends(get_vocabulary_service),  # noqa: B008
+) -> List[ConceptSchema]:
+    """
+    Search for concepts in the vocabulary (GET).
+    Allows searching via query parameters compatible with ConceptSearch aliases.
+    e.g. /vocabulary/search?QUERY=aspirin&DOMAIN_ID=Drug
+    """
     return await service.search_concepts(search, limit, offset)
 
 
