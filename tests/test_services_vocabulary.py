@@ -271,11 +271,11 @@ async def test_search_concepts_postgres_fts_path(vocabulary_service: VocabularyS
         bind = MagicMock()
         bind.dialect.name = "postgresql"
 
-        async def execute(self, stmt):
+        async def execute(self, stmt: object) -> object:
             return await real_session.execute(stmt)
 
     # Swap the session
-    vocabulary_service.db = SessionProxy()  # type: ignore
+    vocabulary_service.db = SessionProxy()
 
     search = ConceptSearch(QUERY="Test")
 
