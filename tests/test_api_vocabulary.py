@@ -58,7 +58,7 @@ async def client(async_session: AsyncSession) -> AsyncGenerator[AsyncClient, Non
         yield async_session
 
     # Override get_redis to return None (no redis in tests)
-    async def override_get_redis() -> None:
+    async def override_get_redis() -> AsyncGenerator[None, None]:
         yield None
 
     app.dependency_overrides[get_db] = override_get_db
