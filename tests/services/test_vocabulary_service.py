@@ -23,7 +23,11 @@ from omop_atlas_backend.services.vocabulary import VocabularyService
 
 @pytest.fixture
 def mock_db() -> AsyncMock:
-    return AsyncMock(spec=AsyncSession)
+    m = AsyncMock(spec=AsyncSession)
+    # Ensure bind.dialect.name can be accessed
+    m.bind = MagicMock()
+    m.bind.dialect.name = "postgresql"
+    return m
 
 
 @pytest.fixture
@@ -102,9 +106,7 @@ async def test_get_concept_by_id_cache_miss_db_hit(
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_not_found(
-    service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
-) -> None:
+async def test_get_concept_by_id_not_found(service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
     """
     Test retrieving a concept that exists nowhere.
     """
