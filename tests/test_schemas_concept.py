@@ -13,7 +13,7 @@ from datetime import date
 from omop_atlas_backend.schemas.concept import Concept, ConceptSearch
 
 
-def test_concept_schema_serialization():
+def test_concept_schema_serialization() -> None:
     """Test serialization of Concept model with aliases."""
     data = {
         "concept_id": 1,
@@ -37,7 +37,7 @@ def test_concept_schema_serialization():
     assert json_output["validStartDate"] == date(2020, 1, 1)
 
 
-def test_concept_search_schema_deserialization():
+def test_concept_search_schema_deserialization() -> None:
     """Test deserialization of ConceptSearch model from API input."""
     data = {
         "QUERY": "aspirin",
@@ -56,7 +56,7 @@ def test_concept_search_schema_deserialization():
     assert search.is_lexical is True
 
 
-def test_concept_search_defaults():
+def test_concept_search_defaults() -> None:
     """Test default values for ConceptSearch."""
     search = ConceptSearch()
     assert search.query == ""

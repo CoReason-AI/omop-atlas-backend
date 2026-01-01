@@ -11,7 +11,7 @@
 from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
 
 
-def test_concept_model_definitions():
+def test_concept_model_definitions() -> None:
     """Test that Concept model fields are defined correctly."""
     assert Concept.__tablename__ == "concept"
 
@@ -28,7 +28,7 @@ def test_concept_model_definitions():
     assert hasattr(Concept, "invalid_reason")
 
 
-def test_vocabulary_model_definitions():
+def test_vocabulary_model_definitions() -> None:
     """Test that Vocabulary model fields are defined correctly."""
     assert Vocabulary.__tablename__ == "vocabulary"
 
@@ -39,7 +39,7 @@ def test_vocabulary_model_definitions():
     assert hasattr(Vocabulary, "vocabulary_concept_id")
 
 
-def test_domain_model_definitions():
+def test_domain_model_definitions() -> None:
     """Test that Domain model fields are defined correctly."""
     assert Domain.__tablename__ == "domain"
 
@@ -48,7 +48,7 @@ def test_domain_model_definitions():
     assert hasattr(Domain, "domain_concept_id")
 
 
-def test_concept_class_model_definitions():
+def test_concept_class_model_definitions() -> None:
     """Test that ConceptClass model fields are defined correctly."""
     assert ConceptClass.__tablename__ == "concept_class"
 

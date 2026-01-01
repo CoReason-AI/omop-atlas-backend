@@ -9,19 +9,21 @@
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
 from datetime import date
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from omop_atlas_backend.models.vocabulary import Base, Concept, ConceptClass, Domain, Vocabulary
+from omop_atlas_backend.models.base import Base
+from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
 from omop_atlas_backend.schemas.concept import ConceptSearch
 from omop_atlas_backend.services.exceptions import ConceptNotFound
 from omop_atlas_backend.services.vocabulary import VocabularyService
 
 
 @pytest_asyncio.fixture
-async def db_session():
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
     # Use SQLite in-memory for testing
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
@@ -33,12 +35,12 @@ async def db_session():
 
 
 @pytest_asyncio.fixture
-async def vocabulary_service(db_session):
+async def vocabulary_service(db_session: AsyncSession) -> VocabularyService:
     return VocabularyService(db_session, redis=None)
 
 
 @pytest_asyncio.fixture
-async def seed_data(db_session):
+async def seed_data(db_session: AsyncSession) -> Concept:
     # 1. Create dependencies
     vocab = Vocabulary(vocabulary_id="SNOMED", vocabulary_name="SNOMED", vocabulary_concept_id=0)
     domain = Domain(domain_id="Condition", domain_name="Condition", domain_concept_id=0)
@@ -68,7 +70,7 @@ async def seed_data(db_session):
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_success(vocabulary_service, seed_data):
+async def test_get_concept_by_id_success(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     # Execute
     result = await vocabulary_service.get_concept_by_id(1)
 
@@ -79,14 +81,14 @@ async def test_get_concept_by_id_success(vocabulary_service, seed_data):
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_not_found(vocabulary_service):
+async def test_get_concept_by_id_not_found(vocabulary_service: VocabularyService) -> None:
     # Execute & Assert
     with pytest.raises(ConceptNotFound):
         await vocabulary_service.get_concept_by_id(999)
 
 
 @pytest.mark.asyncio
-async def test_search_concepts(vocabulary_service, seed_data):
+async def test_search_concepts(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     search = ConceptSearch(QUERY="Test")
     results = await vocabulary_service.search_concepts(search)
     assert len(results) == 1
@@ -94,7 +96,7 @@ async def test_search_concepts(vocabulary_service, seed_data):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_by_filters(vocabulary_service, seed_data):
+async def test_search_concepts_by_filters(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     # Test all filters
     search = ConceptSearch(
         QUERY="Test",
@@ -113,7 +115,9 @@ async def test_search_concepts_by_filters(vocabulary_service, seed_data):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_standard_concept_n(vocabulary_service, db_session, seed_data):
+async def test_search_concepts_standard_concept_n(
+    vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept
+) -> None:
     # Create non-standard concept
     # seed_data already creates the dependent tables (Vocabulary, Domain, ConceptClass)
     # but we are using db_session directly here, so we need to ensure dependencies exist.
@@ -142,7 +146,7 @@ async def test_search_concepts_standard_concept_n(vocabulary_service, db_session
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_invalid_reason_v(vocabulary_service, seed_data):
+async def test_search_concepts_invalid_reason_v(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     search = ConceptSearch(INVALID_REASON="V")
     results = await vocabulary_service.search_concepts(search)
     assert len(results) >= 1
@@ -154,7 +158,7 @@ async def test_search_concepts_invalid_reason_v(vocabulary_service, seed_data):
 
 
 @pytest.mark.asyncio
-async def test_redis_caching(vocabulary_service, seed_data):
+async def test_redis_caching(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     # Mock redis
     from unittest.mock import AsyncMock, MagicMock
 
@@ -196,7 +200,7 @@ async def test_redis_caching(vocabulary_service, seed_data):
 
 
 @pytest.mark.asyncio
-async def test_redis_error_handling(vocabulary_service, seed_data):
+async def test_redis_error_handling(vocabulary_service: VocabularyService, seed_data: Concept) -> None:
     # Mock redis raising exception
     from unittest.mock import AsyncMock, MagicMock
 
