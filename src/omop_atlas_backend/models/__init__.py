@@ -9,6 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
 from omop_atlas_backend.models.base import Base
+from omop_atlas_backend.models.concept_set import ConceptSet, ConceptSetItem
 from omop_atlas_backend.models.security import Permission, Role, User
 from omop_atlas_backend.models.vocabulary import (
     Concept,
@@ -26,4 +27,6 @@ __all__ = [
     "User",
     "Role",
     "Permission",
+    "ConceptSet",
+    "ConceptSetItem",
 ]
