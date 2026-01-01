@@ -54,9 +54,14 @@ class ConceptSearch(BaseModel):
 
     # Using aliases to map uppercase JSON keys to snake_case python attributes
     query: str = Field("", alias="QUERY")
-    domain_id: List[str] = Field(default_factory=list, alias="DOMAIN_ID")
-    vocabulary_id: List[str] = Field(default_factory=list, alias="VOCABULARY_ID")
-    concept_class_id: List[str] = Field(default_factory=list, alias="CONCEPT_CLASS_ID")
+    domain_id: Optional[List[str]] = Field(default_factory=list, alias="DOMAIN_ID")
+    vocabulary_id: Optional[List[str]] = Field(default_factory=list, alias="VOCABULARY_ID")
+    concept_class_id: Optional[List[str]] = Field(default_factory=list, alias="CONCEPT_CLASS_ID")
     standard_concept: Optional[str] = Field(None, alias="STANDARD_CONCEPT")
     invalid_reason: Optional[str] = Field(None, alias="INVALID_REASON")
     is_lexical: bool = Field(False, alias="IS_LEXICAL")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        str_strip_whitespace=True,
+    )
