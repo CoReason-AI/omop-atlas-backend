@@ -31,7 +31,7 @@ class VocabularyService:
     Service for Vocabulary operations.
     """
 
-    def __init__(self, db: AsyncSession, redis: Optional[Redis[str]] = None):
+    def __init__(self, db: AsyncSession, redis: Optional[Redis] = None):  # type: ignore
         self.db = db
         self.redis = redis
 

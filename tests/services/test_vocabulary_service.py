@@ -22,12 +22,12 @@ from omop_atlas_backend.services.vocabulary import VocabularyService
 
 
 @pytest.fixture
-def mock_db():
+def mock_db() -> AsyncMock:
     return AsyncMock(spec=AsyncSession)
 
 
 @pytest.fixture
-def mock_redis():
+def mock_redis() -> AsyncMock:
     redis = AsyncMock()
     redis.get = AsyncMock(return_value=None)
     redis.set = AsyncMock()
@@ -35,12 +35,12 @@ def mock_redis():
 
 
 @pytest.fixture
-def service(mock_db, mock_redis):
+def service(mock_db: AsyncMock, mock_redis: AsyncMock) -> VocabularyService:
     return VocabularyService(db=mock_db, redis=mock_redis)
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_cache_hit(service, mock_redis):
+async def test_get_concept_by_id_cache_hit(service: VocabularyService, mock_redis: AsyncMock) -> None:
     """
     Test retrieving a concept that exists in the Redis cache.
     """
@@ -63,11 +63,13 @@ async def test_get_concept_by_id_cache_hit(service, mock_redis):
     assert result.concept_id == 1
     assert result.concept_name == "Test Concept"
     mock_redis.get.assert_called_once_with("concept:1")
-    service.db.execute.assert_not_called()
+    service.db.execute.assert_not_called()  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_cache_miss_db_hit(service, mock_db, mock_redis):
+async def test_get_concept_by_id_cache_miss_db_hit(
+    service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
+) -> None:
     """
     Test retrieving a concept that is not in cache but exists in DB.
     """
@@ -100,7 +102,9 @@ async def test_get_concept_by_id_cache_miss_db_hit(service, mock_db, mock_redis)
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_not_found(service, mock_db, mock_redis):
+async def test_get_concept_by_id_not_found(
+    service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
+) -> None:
     """
     Test retrieving a concept that exists nowhere.
     """
@@ -120,7 +124,9 @@ async def test_get_concept_by_id_not_found(service, mock_db, mock_redis):
 
 
 @pytest.mark.asyncio
-async def test_get_concept_by_id_redis_failure_fallback(service, mock_db, mock_redis):
+async def test_get_concept_by_id_redis_failure_fallback(
+    service: VocabularyService, mock_db: AsyncMock, mock_redis: AsyncMock
+) -> None:
     """
     Test that if Redis fails, the service falls back to DB transparently.
     """
@@ -152,7 +158,7 @@ async def test_get_concept_by_id_redis_failure_fallback(service, mock_db, mock_r
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_fts_query_generation(service, mock_db):
+async def test_search_concepts_fts_query_generation(service: VocabularyService, mock_db: AsyncMock) -> None:
     """
     Test that search_concepts generates the correct FTS query structure.
     """
@@ -193,7 +199,7 @@ async def test_search_concepts_fts_query_generation(service, mock_db):
 
 
 @pytest.mark.asyncio
-async def test_search_concepts_filters_logic(service, mock_db):
+async def test_search_concepts_filters_logic(service: VocabularyService, mock_db: AsyncMock) -> None:
     """
     Test that filters are applied correctly, specifically the OMOP mapping logic.
     """
