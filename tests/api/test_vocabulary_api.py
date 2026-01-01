@@ -28,7 +28,6 @@ from omop_atlas_backend.models.vocabulary import Concept
 # Override dependencies for testing
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     mock_session = AsyncMock(spec=AsyncSession)
-    # We will configure the mock per test
     yield mock_session
 
 
@@ -44,7 +43,11 @@ app.dependency_overrides[get_redis] = override_get_redis
 
 @pytest.fixture
 def mock_session() -> AsyncMock:
-    return AsyncMock(spec=AsyncSession)
+    m = AsyncMock(spec=AsyncSession)
+    # Configure bind dialect for search_concepts
+    m.bind = MagicMock()
+    m.bind.dialect.name = "postgresql"
+    return m
 
 
 @pytest.fixture
@@ -82,7 +85,11 @@ async def test_search_concepts_endpoint(test_app: FastAPI, mock_session: AsyncMo
         valid_end_date=date(2099, 12, 31),
         invalid_reason=None,
     )
+    # Mocking result.scalars().all()
     mock_result.scalars.return_value.all.return_value = [mock_concept]
+
+    # Ensure execute returns a mock that mimics Result
+    # When awaited, execute returns mock_result
     mock_session.execute.return_value = mock_result
 
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
@@ -115,7 +122,16 @@ async def test_get_concept_endpoint(test_app: FastAPI, mock_session: AsyncMock, 
     )
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_concept
+    # Correct mock for scalars().first()
+    # scalars() returns a MagicMock (scalars_mock). scalars_mock.first() returns first_mock.
+    # We set first_mock.return_value = mock_concept? No, scalars().first() is the call.
+    # mock_result.scalars is a Mock.
+    # mock_result.scalars() returns mock_result.scalars.return_value.
+    # mock_result.scalars.return_value.first() returns mock_result.scalars.return_value.first.return_value.
+
+    mock_result.scalars.return_value.first.return_value = mock_concept
+
+    # Configure execute
     mock_session.execute.return_value = mock_result
 
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
@@ -132,7 +148,9 @@ async def test_get_concept_not_found(test_app: FastAPI, mock_session: AsyncMock,
     mock_redis.get.return_value = None
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
+    # scalars().first() returns None
+    mock_result.scalars.return_value.first.return_value = None
+
     mock_session.execute.return_value = mock_result
 
     async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
