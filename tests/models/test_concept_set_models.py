@@ -25,11 +25,7 @@ async def test_concept_set_models(async_session: AsyncSession) -> None:
     Test that ConceptSet and ConceptSetItem models can be instantiated and persisted.
     """
     # 1. Create a User (for CommonEntity fields)
-    user = User(
-        username="test_user",
-        password_hash="hash",
-        is_active=True
-    )
+    user = User(username="test_user", password_hash="hash", is_active=True)
     async_session.add(user)
     await async_session.flush()
 
@@ -42,7 +38,7 @@ async def test_concept_set_models(async_session: AsyncSession) -> None:
         concept_class_id="Clinical Finding",
         concept_code="C12345",
         valid_start_date=date(2020, 1, 1),
-        valid_end_date=date(2099, 12, 31)
+        valid_end_date=date(2099, 12, 31),
     )
     async_session.add(concept)
     await async_session.flush()
@@ -52,7 +48,7 @@ async def test_concept_set_models(async_session: AsyncSession) -> None:
         concept_set_name="Test Concept Set",
         description="A test set",
         created_by_id=user.id,
-        created_date=datetime.now(timezone.utc)
+        created_date=datetime.now(timezone.utc),
     )
     async_session.add(concept_set)
     await async_session.commit()
@@ -76,7 +72,7 @@ async def test_concept_set_models(async_session: AsyncSession) -> None:
         concept_id=concept.concept_id,
         is_excluded=False,
         include_descendants=True,
-        include_mapped=False
+        include_mapped=False,
     )
     async_session.add(item)
     await async_session.commit()
@@ -94,6 +90,7 @@ async def test_concept_set_models(async_session: AsyncSession) -> None:
     assert retrieved_cs.items[0].concept.concept_name == "Test Concept"
 
     # Check User relationship
+    assert retrieved_cs.created_by is not None
     assert retrieved_cs.created_by.username == "test_user"
 
     # Test __repr__ for item
