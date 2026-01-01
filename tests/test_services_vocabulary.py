@@ -9,7 +9,7 @@
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
 from datetime import date
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, cast
 
 import pytest
 import pytest_asyncio
@@ -271,11 +271,11 @@ async def test_search_concepts_postgres_fts_path(vocabulary_service: VocabularyS
         bind = MagicMock()
         bind.dialect.name = "postgresql"
 
-        async def execute(self, stmt: object) -> object:
+        async def execute(self, stmt: Any) -> Any:
             return await real_session.execute(stmt)
 
     # Swap the session
-    vocabulary_service.db = SessionProxy()
+    vocabulary_service.db = cast(AsyncSession, SessionProxy())
 
     search = ConceptSearch(QUERY="Test")
 
