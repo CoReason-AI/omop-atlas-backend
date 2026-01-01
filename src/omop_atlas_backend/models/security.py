@@ -15,7 +15,7 @@ Defines the User, Role, and Permission models for RBAC.
 
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, Integer, String, Table, Column
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from omop_atlas_backend.models.base import Base
@@ -63,9 +63,7 @@ class Role(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 
-    permissions: Mapped[List[Permission]] = relationship(
-        secondary=role_permissions, lazy="selectin"
-    )
+    permissions: Mapped[List[Permission]] = relationship(secondary=role_permissions, lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<Role(id={self.id}, name='{self.name}')>"
@@ -87,9 +85,7 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
     is_superuser: Mapped[bool] = mapped_column(default=False)
 
-    roles: Mapped[List[Role]] = relationship(
-        secondary=user_roles, lazy="selectin"
-    )
+    roles: Mapped[List[Role]] = relationship(secondary=user_roles, lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username='{self.username}')>"
