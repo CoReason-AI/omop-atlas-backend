@@ -84,15 +84,25 @@ class VocabularyService:
         stmt = select(ConceptModel)
 
         if search.query:
-            # FTS on name OR ILIKE on code
-            # Note: We assume Postgres for FTS optimization as per requirements.
+            # Check dialect for optimization
+            dialect_name = self.db.bind.dialect.name if self.db.bind else "postgresql"
 
-            fts_condition = func.to_tsvector("english", ConceptModel.concept_name).op("@@")(
-                func.plainto_tsquery("english", search.query)
-            )
-            code_condition = ConceptModel.concept_code.ilike(f"%{search.query}%")
-
-            stmt = stmt.where(or_(fts_condition, code_condition))
+            if dialect_name == "postgresql":
+                # FTS on name OR ILIKE on code
+                fts_condition = func.to_tsvector("english", ConceptModel.concept_name).op("@@")(
+                    func.plainto_tsquery("english", search.query)
+                )
+                code_condition = ConceptModel.concept_code.ilike(f"%{search.query}%")
+                stmt = stmt.where(or_(fts_condition, code_condition))
+            else:
+                # Fallback for SQLite/Other (Tests)
+                # Simple ILIKE on name and code
+                stmt = stmt.where(
+                    or_(
+                        ConceptModel.concept_name.ilike(f"%{search.query}%"),
+                        ConceptModel.concept_code.ilike(f"%{search.query}%"),
+                    )
+                )
 
         if search.vocabulary_id:
             stmt = stmt.where(ConceptModel.vocabulary_id.in_(search.vocabulary_id))
