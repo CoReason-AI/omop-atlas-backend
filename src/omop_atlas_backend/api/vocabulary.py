@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from omop_atlas_backend.dependencies import get_vocabulary_service
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
+from omop_atlas_backend.services.exceptions import ConceptNotFound
 from omop_atlas_backend.services.vocabulary import VocabularyService
 
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
@@ -33,8 +34,8 @@ async def search_concepts(
     """
     Search for concepts in the vocabulary.
     """
-    concepts = await service.search_concepts(search, limit, offset)
-    return [ConceptSchema.model_validate(c) for c in concepts]
+    # Service now returns List[ConceptSchema]
+    return await service.search_concepts(search, limit, offset)
 
 
 @router.get("/concept/{id}", response_model=ConceptSchema, response_model_by_alias=True)
@@ -45,7 +46,7 @@ async def get_concept(
     """
     Get a concept by ID, utilizing Redis cache if available.
     """
-    concept = await service.get_concept(id)
-    if not concept:
-        raise HTTPException(status_code=404, detail=f"There is no concept with id = {id}.")
-    return ConceptSchema.model_validate(concept)
+    try:
+        return await service.get_concept_by_id(id)
+    except ConceptNotFound as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e

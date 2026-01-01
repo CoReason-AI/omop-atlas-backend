@@ -10,8 +10,8 @@
 
 """
 Phase 2: Vocabulary Engine - Service
-Handles high-performance search and retrieval of OMOP Concepts.
-Includes Redis caching and Postgres Full Text Search optimization.
+Handles logic for searching and retrieving concepts.
+Implements Rule #1 (Read-Only Vocabulary Optimization) and Redis caching.
 """
 
 from typing import List, Optional
@@ -20,125 +20,115 @@ from redis.asyncio import Redis
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from omop_atlas_backend.models.vocabulary import Concept
+from omop_atlas_backend.models.vocabulary import Concept as ConceptModel
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
+from omop_atlas_backend.services.exceptions import ConceptNotFound
 
 
 class VocabularyService:
     """
-    Service for Vocabulary operations: Searching and Retrieving Concepts.
-    Includes Redis caching for high-performance single-concept lookups.
+    Service for Vocabulary operations.
     """
 
-    def __init__(self, db: AsyncSession, redis: Optional["Redis[str]"]):
+    def __init__(self, db: AsyncSession, redis: Optional[Redis] = None):  # type: ignore
         self.db = db
         self.redis = redis
 
-    async def get_concept(self, concept_id: int) -> Optional[ConceptSchema]:
+    async def get_concept_by_id(self, concept_id: int) -> ConceptSchema:
         """
-        Get a concept by ID. First checks Redis cache, then DB.
-
-        :param concept_id: The OMOP Concept ID.
-        :return: ConceptSchema if found, else None.
+        Retrieves a single concept by ID.
         """
         cache_key = f"concept:{concept_id}"
-        cached_data = None
+
+        # Try Redis first
         if self.redis:
             try:
-                cached_data = await self.redis.get(cache_key)
+                cached = await self.redis.get(cache_key)
+                if cached:
+                    return ConceptSchema.model_validate_json(cached)
             except Exception:
-                # Fallback to DB if Redis fails
+                # Log error but fall back to DB
                 pass
 
-        if cached_data:
-            return ConceptSchema.model_validate_json(cached_data)
+        query = select(ConceptModel).where(ConceptModel.concept_id == concept_id)
+        result = await self.db.execute(query)
+        concept = result.scalars().first()
 
-        stmt = select(Concept).where(Concept.concept_id == concept_id)
-        result = await self.db.execute(stmt)
-        concept = result.scalar_one_or_none()
+        if not concept:
+            raise ConceptNotFound(concept_id)
 
-        if concept:
-            schema = ConceptSchema.model_validate(concept)
-            if self.redis:
-                try:
-                    await self.redis.set(cache_key, schema.model_dump_json(), ex=3600)  # Cache for 1 hour
-                except Exception:
-                    pass
-            return schema
+        # Validate and Serialize
+        concept_schema = ConceptSchema.model_validate(concept)
 
-        return None
-
-    async def search_concepts(self, search: ConceptSearch, limit: int = 20000, offset: int = 0) -> List[ConceptSchema]:
-        """
-        Search concepts based on criteria with pagination.
-        Uses ILIKE for case-insensitive matching on Name and Code.
-
-        :param search: ConceptSearch criteria (query, filters).
-        :param limit: Max number of results (default 20,000).
-        :param offset: Pagination offset.
-        :return: List of ConceptSchema.
-        """
-        # Ensure limit and offset are positive
-        limit = max(1, limit)
-        offset = max(0, offset)
-
-        stmt = select(Concept)
-
-        # Basic text search (using ILIKE for case-insensitive search)
-        # Note: For production, consider using Postgres Full Text Search (tsvector)
-        # e.g., using search.query with websearch_to_tsquery or plainto_tsquery
-        if search.query:
-            # Check for Postgres dialect to use Full Text Search
-            is_postgres = False
+        # Cache in Redis
+        if self.redis:
             try:
-                if self.db.bind and self.db.bind.dialect.name == "postgresql":
-                    is_postgres = True
+                # Expire in 1 hour (3600 seconds)
+                await self.redis.set(cache_key, concept_schema.model_dump_json(), ex=3600)
             except Exception:
-                pass  # Fallback if bind is not available or other error
+                # Log error but continue
+                pass
 
-            if is_postgres:
-                # Optimized FTS for Postgres
-                # Match name using FTS OR code using ILIKE
+        return concept_schema
+
+    async def search_concepts(
+        self,
+        search: ConceptSearch,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> List[ConceptSchema]:
+        """
+        Searches for concepts using optimized SQL queries (Full Text Search) and standard filters.
+        """
+        stmt = select(ConceptModel)
+
+        if search.query:
+            # Check dialect for optimization
+            dialect_name = self.db.bind.dialect.name if self.db.bind else "postgresql"
+
+            if dialect_name == "postgresql":
+                # FTS on name OR ILIKE on code
+                fts_condition = func.to_tsvector("english", ConceptModel.concept_name).op("@@")(
+                    func.plainto_tsquery("english", search.query)
+                )
+                code_condition = ConceptModel.concept_code.ilike(f"%{search.query}%")
+                stmt = stmt.where(or_(fts_condition, code_condition))
+            else:
+                # Fallback for SQLite/Other (Tests)
+                # Simple ILIKE on name and code
                 stmt = stmt.where(
                     or_(
-                        func.to_tsvector("english", Concept.concept_name).op("@@")(
-                            func.websearch_to_tsquery("english", search.query)
-                        ),
-                        Concept.concept_code.ilike(f"%{search.query}%"),
+                        ConceptModel.concept_name.ilike(f"%{search.query}%"),
+                        ConceptModel.concept_code.ilike(f"%{search.query}%"),
                     )
                 )
-            else:
-                # Fallback for SQLite/others
-                query_str = f"%{search.query}%"
-                stmt = stmt.where(or_(Concept.concept_name.ilike(query_str), Concept.concept_code.ilike(query_str)))
-
-        # Filters
-        if search.domain_id:
-            stmt = stmt.where(Concept.domain_id.in_(search.domain_id))
 
         if search.vocabulary_id:
-            stmt = stmt.where(Concept.vocabulary_id.in_(search.vocabulary_id))
+            stmt = stmt.where(ConceptModel.vocabulary_id.in_(search.vocabulary_id))
+
+        if search.domain_id:
+            stmt = stmt.where(ConceptModel.domain_id.in_(search.domain_id))
 
         if search.concept_class_id:
-            stmt = stmt.where(Concept.concept_class_id.in_(search.concept_class_id))
-
-        if search.invalid_reason:
-            if search.invalid_reason == "V":
-                stmt = stmt.where(Concept.invalid_reason.is_(None))
-            else:
-                stmt = stmt.where(Concept.invalid_reason == search.invalid_reason)
+            stmt = stmt.where(ConceptModel.concept_class_id.in_(search.concept_class_id))
 
         if search.standard_concept:
+            # OMOP Convention: 'N' (Non-standard) often maps to NULL in standard_concept column
             if search.standard_concept == "N":
-                stmt = stmt.where(Concept.standard_concept.is_(None))
+                stmt = stmt.where(ConceptModel.standard_concept.is_(None))
             else:
-                stmt = stmt.where(Concept.standard_concept == search.standard_concept)
+                stmt = stmt.where(ConceptModel.standard_concept == search.standard_concept)
 
-        # Pagination
+        if search.invalid_reason:
+            # OMOP Convention: 'V' (Valid) maps to NULL in invalid_reason column
+            if search.invalid_reason == "V":
+                stmt = stmt.where(ConceptModel.invalid_reason.is_(None))
+            else:
+                stmt = stmt.where(ConceptModel.invalid_reason == search.invalid_reason)
+
         stmt = stmt.limit(limit).offset(offset)
-
         result = await self.db.execute(stmt)
-        concepts = result.scalars().all()
 
-        return [ConceptSchema.model_validate(c) for c in concepts]
+        # Return Schemas instead of Models
+        return [ConceptSchema.model_validate(c) for c in result.scalars().all()]
