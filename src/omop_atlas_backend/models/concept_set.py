@@ -35,9 +35,7 @@ class ConceptSet(Base):
     concept_set_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     concept_set_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_date: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
+    created_date: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     created_by: Mapped["User"] = relationship()
