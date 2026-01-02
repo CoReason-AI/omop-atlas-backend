@@ -12,7 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from omop_atlas_backend.dependencies import get_db, get_redis
+from omop_atlas_backend.dependencies import get_db, get_redis, get_vocabulary_service
+from omop_atlas_backend.services.vocabulary import VocabularyService
 
 
 @pytest.mark.asyncio
@@ -65,3 +66,15 @@ async def test_get_redis_failure() -> None:
         # Verify generator exits
         with pytest.raises(StopAsyncIteration):
             await anext(gen)
+
+
+@pytest.mark.asyncio
+async def test_get_vocabulary_service() -> None:
+    """Test get_vocabulary_service returns a service instance."""
+    mock_session = AsyncMock()
+    mock_redis = AsyncMock()
+
+    service = await get_vocabulary_service(session=mock_session, redis=mock_redis)
+    assert isinstance(service, VocabularyService)
+    assert service.db is mock_session
+    assert service.redis is mock_redis
