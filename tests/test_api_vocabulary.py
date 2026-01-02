@@ -10,15 +10,18 @@
 
 from datetime import date
 from typing import AsyncGenerator
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from omop_atlas_backend.dependencies import get_db, get_redis
+from omop_atlas_backend.dependencies import get_db, get_redis, get_vocabulary_service
 from omop_atlas_backend.main import app
 from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
+from omop_atlas_backend.services.exceptions import ConceptNotFound
+from omop_atlas_backend.services.vocabulary import VocabularyService
 
 
 @pytest_asyncio.fixture
@@ -64,8 +67,6 @@ async def client(async_session: AsyncSession) -> AsyncGenerator[AsyncClient, Non
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
 
-    # Do not use context manager here to avoid closing loop issues in some envs
-    # or just use it simply.
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
@@ -83,8 +84,19 @@ async def test_get_concept_by_id(client: AsyncClient, seed_data: Concept) -> Non
 
 @pytest.mark.asyncio
 async def test_get_concept_by_id_not_found(client: AsyncClient) -> None:
-    response = await client.get("/vocabulary/concept/999")
-    assert response.status_code == 404
+    # Use explicit mock to ensure we hit the exception path and coverage detects it
+    mock_service = AsyncMock(spec=VocabularyService)
+    mock_service.get_concept_by_id.side_effect = ConceptNotFound(999)
+
+    app.dependency_overrides[get_vocabulary_service] = lambda: mock_service
+
+    try:
+        response = await client.get("/vocabulary/concept/999")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Concept with ID 999 not found."
+    finally:
+        # Cleanup override
+        del app.dependency_overrides[get_vocabulary_service]
 
 
 @pytest.mark.asyncio
@@ -101,15 +113,11 @@ async def test_search_concepts_post(client: AsyncClient, seed_data: Concept) -> 
 
 @pytest.mark.asyncio
 async def test_search_concepts_get(client: AsyncClient, seed_data: Concept) -> None:
-    # Search using GET (new endpoint)
-    # Note: query params must match the aliases defined in ConceptSearch (e.g. QUERY, DOMAIN_ID)
+    # Search using GET
     params = {
         "QUERY": "Test",
-        "DOMAIN_ID": "Condition",  # Pydantic will parse single value into list if field is List[str] ?
-        # Actually FastAPI Depends with Pydantic might need `DOMAIN_ID=Condition` repeated if list.
-        # Let's try simple query first.
+        "DOMAIN_ID": "Condition",
     }
-    # For list in GET query params: ?DOMAIN_ID=Condition
     response = await client.get("/vocabulary/search", params=params)
     assert response.status_code == 200
     data = response.json()
