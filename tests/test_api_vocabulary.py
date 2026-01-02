@@ -124,3 +124,29 @@ async def test_search_concepts_get(client: AsyncClient, seed_data: Concept) -> N
     assert isinstance(data, list)
     assert len(data) == 1
     assert data[0]["conceptId"] == 1
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_invalid_pagination(client: AsyncClient) -> None:
+    """Test negative limit and offset return 422."""
+    response = await client.get("/vocabulary/search?limit=-1")
+    assert response.status_code == 422
+
+    response = await client.get("/vocabulary/search?offset=-1")
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_empty_query_params(client: AsyncClient, seed_data: Concept) -> None:
+    """Test calling search with valid but empty optional params."""
+    # Should ignore empty strings or missing params
+    response = await client.get("/vocabulary/search?QUERY=")
+    assert response.status_code == 200
+    data = response.json()
+    assert (
+        len(data) == 1
+    )  # Should match all limited by default since empty query often means match all or skipped filter
+
+    # Test unknown query param (should be ignored)
+    response = await client.get("/vocabulary/search?FOO=Bar")
+    assert response.status_code == 200
