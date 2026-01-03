@@ -287,3 +287,94 @@ async def test_search_concepts_case_sensitivity(
     search_upper = ConceptSearch(STANDARD_CONCEPT="S")
     results_upper = await vocabulary_service.search_concepts(search_upper)
     assert len(results_upper) == 1
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_lexical(
+    vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept
+) -> None:
+    # 1. Create dependencies for lexical search
+    from omop_atlas_backend.models.vocabulary import ConceptSynonym
+
+    # Add a synonym for the existing concept (concept_id=1, "Test Concept")
+    # Synonym: "Trial Idea"
+    synonym = ConceptSynonym(
+        concept_id=1,
+        concept_synonym_name="Trial Idea",
+        language_concept_id=4180186,  # English
+    )
+    db_session.add(synonym)
+
+    # Add another concept to test ranking
+    # Concept: "Test Concept Extended" -> Match "Test Concept"
+    concept2 = Concept(
+        concept_id=2,
+        concept_name="Test Concept Extended",
+        domain_id="Condition",
+        vocabulary_id="SNOMED",
+        concept_class_id="Clinical Finding",
+        standard_concept="S",
+        concept_code="999",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        invalid_reason=None,
+    )
+    db_session.add(concept2)
+    await db_session.commit()
+
+    # Search for "Test Concept"
+    # Should match concept 1 ("Test Concept") - Exact match -> Higher score
+    # Should match concept 2 ("Test Concept Extended") - Partial match -> Lower score
+    search = ConceptSearch(QUERY="Test Concept", IS_LEXICAL=True)
+    results = await vocabulary_service.search_concepts(search)
+
+    assert len(results) >= 2
+    # Concept 1 should be first because it's a closer match (shorter length diff)
+    assert results[0].concept_id == 1
+    assert results[1].concept_id == 2
+
+    # Search by Synonym "Trial"
+    search_syn = ConceptSearch(QUERY="Trial", IS_LEXICAL=True)
+    results_syn = await vocabulary_service.search_concepts(search_syn)
+    assert len(results_syn) >= 1
+    assert results_syn[0].concept_id == 1
+
+@pytest.mark.asyncio
+async def test_search_concepts_lexical_whitespace_and_non_standard(
+    vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept
+) -> None:
+    # 1. Test multiple spaces
+    # Existing concept name: "Test Concept"
+    # Query with multiple spaces: "Test  Concept"
+    search = ConceptSearch(QUERY="Test  Concept", IS_LEXICAL=True)
+    results = await vocabulary_service.search_concepts(search)
+    assert len(results) >= 1
+    assert results[0].concept_id == 1
+
+    # 2. Test searching for non-standard concept
+    # Create non-standard concept
+    c_non_standard = Concept(
+        concept_id=3,
+        concept_name="Non Standard Concept",
+        domain_id="Condition",
+        vocabulary_id="SNOMED",
+        concept_class_id="Clinical Finding",
+        standard_concept=None,
+        concept_code="NS1",
+        valid_start_date=date(2020, 1, 1),
+        valid_end_date=date(2099, 12, 31),
+        invalid_reason=None,
+    )
+    db_session.add(c_non_standard)
+    await db_session.commit()
+
+    # Search explicitly for non-standard
+    search_ns = ConceptSearch(QUERY="Non Standard", IS_LEXICAL=True, STANDARD_CONCEPT="N")
+    results_ns = await vocabulary_service.search_concepts(search_ns)
+    assert len(results_ns) >= 1
+    assert results_ns[0].concept_id == 3
+
+    # Ensure regular search doesn't find it if we filter for 'S'
+    search_s = ConceptSearch(QUERY="Non Standard", IS_LEXICAL=True, STANDARD_CONCEPT="S")
+    results_s = await vocabulary_service.search_concepts(search_s)
+    assert len(results_s) == 0

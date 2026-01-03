@@ -35,6 +35,7 @@ class Concept(Base):
     domain: Mapped["Domain"] = relationship(back_populates="concepts")
     vocabulary: Mapped["Vocabulary"] = relationship(back_populates="concepts")
     concept_class: Mapped["ConceptClass"] = relationship(back_populates="concepts")
+    synonyms: Mapped[list["ConceptSynonym"]] = relationship(back_populates="concept")
 
 
 class Vocabulary(Base):
@@ -112,3 +113,14 @@ class ConceptAncestor(Base):
     # Relationships
     ancestor_concept: Mapped["Concept"] = relationship(foreign_keys=[ancestor_concept_id])
     descendant_concept: Mapped["Concept"] = relationship(foreign_keys=[descendant_concept_id])
+
+
+class ConceptSynonym(Base):
+    __tablename__ = "concept_synonym"
+
+    concept_id: Mapped[int] = mapped_column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    concept_synonym_name: Mapped[str] = mapped_column(String(1000), primary_key=True)
+    language_concept_id: Mapped[int] = mapped_column(Integer)
+
+    # Relationships
+    concept: Mapped["Concept"] = relationship(back_populates="synonyms")
