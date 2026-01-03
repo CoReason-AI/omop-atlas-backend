@@ -14,6 +14,7 @@ import pytest_asyncio
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from omop_atlas_backend.models.base import Base
 
@@ -34,7 +35,7 @@ def set_sqlite_pragma(dbapi_connection: Any, connection_record: Any) -> None:
 
 @pytest_asyncio.fixture
 async def async_engine() -> AsyncGenerator[AsyncEngine, None]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False, poolclass=StaticPool)
 
     # Create tables
     async with engine.begin() as conn:
