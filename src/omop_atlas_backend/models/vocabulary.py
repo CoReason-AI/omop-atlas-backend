@@ -70,3 +70,45 @@ class ConceptClass(Base):
 
     # Relationships
     concepts: Mapped[list["Concept"]] = relationship(back_populates="concept_class")
+
+
+class Relationship(Base):
+    __tablename__ = "relationship"
+
+    relationship_id: Mapped[str] = mapped_column(String(20), primary_key=True)
+    relationship_name: Mapped[str] = mapped_column(String(255))
+    is_hierarchical: Mapped[str] = mapped_column(String(1))
+    defines_ancestry: Mapped[str] = mapped_column(String(1))
+    reverse_relationship_id: Mapped[str] = mapped_column(String(20))
+    relationship_concept_id: Mapped[int] = mapped_column(Integer)
+
+
+class ConceptRelationship(Base):
+    __tablename__ = "concept_relationship"
+
+    concept_id_1: Mapped[int] = mapped_column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    concept_id_2: Mapped[int] = mapped_column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    relationship_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("relationship.relationship_id"), primary_key=True
+    )
+    valid_start_date: Mapped[date] = mapped_column(Date)
+    valid_end_date: Mapped[date] = mapped_column(Date)
+    invalid_reason: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)
+
+    # Relationships
+    concept_1: Mapped["Concept"] = relationship(foreign_keys=[concept_id_1])
+    concept_2: Mapped["Concept"] = relationship(foreign_keys=[concept_id_2])
+    relationship_rel: Mapped["Relationship"] = relationship()
+
+
+class ConceptAncestor(Base):
+    __tablename__ = "concept_ancestor"
+
+    ancestor_concept_id: Mapped[int] = mapped_column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    descendant_concept_id: Mapped[int] = mapped_column(Integer, ForeignKey("concept.concept_id"), primary_key=True)
+    min_levels_of_separation: Mapped[int] = mapped_column(Integer)
+    max_levels_of_separation: Mapped[int] = mapped_column(Integer)
+
+    # Relationships
+    ancestor_concept: Mapped["Concept"] = relationship(foreign_keys=[ancestor_concept_id])
+    descendant_concept: Mapped["Concept"] = relationship(foreign_keys=[descendant_concept_id])
