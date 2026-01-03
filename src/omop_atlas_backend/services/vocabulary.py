@@ -72,6 +72,24 @@ class VocabularyService:
 
         return concept_schema
 
+    async def validate_concepts(self, concept_ids: List[int]) -> None:
+        """
+        Validates that all provided concept IDs exist in the database.
+        Raises ConceptNotFound with the first missing ID if validation fails.
+        """
+        if not concept_ids:
+            return
+
+        unique_ids = set(concept_ids)
+        query = select(ConceptModel.concept_id).where(ConceptModel.concept_id.in_(unique_ids))
+        result = await self.db.execute(query)
+        found_ids = set(result.scalars().all())
+
+        missing_ids = unique_ids - found_ids
+        if missing_ids:
+            # For simplicity, raise for the first missing ID, or we could raise a bulk exception
+            raise ConceptNotFound(list(missing_ids)[0])
+
     async def search_concepts(
         self,
         search: ConceptSearch,

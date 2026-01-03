@@ -17,6 +17,7 @@ from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from omop_atlas_backend.services.concept_set import ConceptSetService
 from omop_atlas_backend.services.vocabulary import VocabularyService
 
 # Default to in-memory for dev/test if not specified, or use a proper env var.
@@ -59,3 +60,10 @@ async def get_vocabulary_service(
     redis: Optional["Redis[str]"] = Depends(get_redis),  # noqa: B008
 ) -> VocabularyService:
     return VocabularyService(session, redis)
+
+
+async def get_concept_set_service(
+    session: AsyncSession = Depends(get_db),  # noqa: B008
+    vocab_service: VocabularyService = Depends(get_vocabulary_service),  # noqa: B008
+) -> ConceptSetService:
+    return ConceptSetService(session, vocab_service)

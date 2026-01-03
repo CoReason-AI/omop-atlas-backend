@@ -13,7 +13,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from omop_atlas_backend.api import vocabulary
+from omop_atlas_backend.api import concept_set, vocabulary
 from omop_atlas_backend.utils.logger import logger
 
 
@@ -32,6 +32,7 @@ app = FastAPI(
 )
 
 app.include_router(vocabulary.router)
+app.include_router(concept_set.router)
 
 
 @app.get("/")
