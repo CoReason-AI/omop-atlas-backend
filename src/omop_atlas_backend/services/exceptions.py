@@ -16,6 +16,18 @@ Service Layer Exceptions
 class ConceptNotFound(Exception):
     """Raised when a requested concept is not found."""
 
-    def __init__(self, concept_id: int):
+    def __init__(self, concept_id: int | str):
         self.concept_id = concept_id
         super().__init__(f"Concept with ID {concept_id} not found.")
+
+
+class DuplicateResourceError(Exception):
+    """Raised when a resource already exists."""
+
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when input validation fails."""
+
+    pass
