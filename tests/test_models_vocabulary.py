@@ -8,7 +8,15 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from omop_atlas_backend.models.vocabulary import Concept, ConceptClass, Domain, Vocabulary
+from omop_atlas_backend.models.vocabulary import (
+    Concept,
+    ConceptAncestor,
+    ConceptClass,
+    ConceptRelationship,
+    Domain,
+    Relationship,
+    Vocabulary,
+)
 
 
 def test_concept_model_definitions() -> None:
@@ -55,3 +63,37 @@ def test_concept_class_model_definitions() -> None:
     assert hasattr(ConceptClass, "concept_class_id")
     assert hasattr(ConceptClass, "concept_class_name")
     assert hasattr(ConceptClass, "concept_class_concept_id")
+
+
+def test_relationship_model_definitions() -> None:
+    """Test that Relationship model fields are defined correctly."""
+    assert Relationship.__tablename__ == "relationship"
+
+    assert hasattr(Relationship, "relationship_id")
+    assert hasattr(Relationship, "relationship_name")
+    assert hasattr(Relationship, "is_hierarchical")
+    assert hasattr(Relationship, "defines_ancestry")
+    assert hasattr(Relationship, "reverse_relationship_id")
+    assert hasattr(Relationship, "relationship_concept_id")
+
+
+def test_concept_relationship_model_definitions() -> None:
+    """Test that ConceptRelationship model fields are defined correctly."""
+    assert ConceptRelationship.__tablename__ == "concept_relationship"
+
+    assert hasattr(ConceptRelationship, "concept_id_1")
+    assert hasattr(ConceptRelationship, "concept_id_2")
+    assert hasattr(ConceptRelationship, "relationship_id")
+    assert hasattr(ConceptRelationship, "valid_start_date")
+    assert hasattr(ConceptRelationship, "valid_end_date")
+    assert hasattr(ConceptRelationship, "invalid_reason")
+
+
+def test_concept_ancestor_model_definitions() -> None:
+    """Test that ConceptAncestor model fields are defined correctly."""
+    assert ConceptAncestor.__tablename__ == "concept_ancestor"
+
+    assert hasattr(ConceptAncestor, "ancestor_concept_id")
+    assert hasattr(ConceptAncestor, "descendant_concept_id")
+    assert hasattr(ConceptAncestor, "min_levels_of_separation")
+    assert hasattr(ConceptAncestor, "max_levels_of_separation")
