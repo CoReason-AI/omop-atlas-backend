@@ -150,3 +150,35 @@ async def test_search_concepts_empty_query_params(client: AsyncClient, seed_data
     # Test unknown query param (should be ignored)
     response = await client.get("/vocabulary/search?FOO=Bar")
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_post_validation_error(client: AsyncClient) -> None:
+    """Test 422 Unprocessable Entity for invalid body."""
+    # Sending string instead of list for DOMAIN_ID (if defined as list[str])
+    # Pydantic might coerce single string to list depending on config,
+    # but let's try something clearly wrong like int for list[str] or invalid json.
+    payload = {"DOMAIN_ID": 123}  # Invalid type
+    response = await client.post("/vocabulary/search", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_search_concepts_post_malformed_json(client: AsyncClient) -> None:
+    """Test 422/400 for malformed JSON."""
+    response = await client.post(
+        "/vocabulary/search", content="{invalid-json", headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 422 or response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_sql_injection_attempt(client: AsyncClient, seed_data: Concept) -> None:
+    """Test SQL injection attempt via API."""
+    # Should be treated as literal string by SQLAlchemy
+    injection_payload = {"QUERY": "' OR '1'='1"}
+    response = await client.post("/vocabulary/search", json=injection_payload)
+    assert response.status_code == 200
+    data = response.json()
+    # Should match nothing (unless we have a concept named exactly that)
+    assert len(data) == 0
