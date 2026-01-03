@@ -8,12 +8,12 @@
 #
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from omop_atlas_backend.schemas.concept_set import ConceptSetCreate
+from omop_atlas_backend.schemas.concept_set import ConceptSetCreate, ConceptSetUpdate
 from omop_atlas_backend.services.concept_set import ConceptSetService
 
 
@@ -27,7 +27,6 @@ async def test_create_concept_set_integrity_error_passthrough() -> None:
     mock_session = AsyncMock()
 
     # Configure flush to raise a generic IntegrityError
-    # The error message should NOT contain "concept_set_name" or "UNIQUE constraint failed"
     error_instance = IntegrityError("INSERT failed", {"param": 1}, Exception("Generic DB Error"))
     mock_session.flush.side_effect = error_instance
 
@@ -40,6 +39,38 @@ async def test_create_concept_set_integrity_error_passthrough() -> None:
         await service.create_concept_set(data, user_id)
 
     assert exc.value is error_instance
+    mock_session.rollback.assert_awaited_once()
 
-    # Verify rollback was called
+
+@pytest.mark.asyncio
+async def test_update_concept_set_integrity_error_passthrough() -> None:
+    """
+    Unit Test: Verify that non-unique-constraint IntegrityErrors are re-raised during update.
+    This ensures 100% coverage for the `raise e` line in `update_concept_set`.
+    """
+    # Mock Session
+    mock_session = AsyncMock()
+
+    # Mock get_concept_set return value
+    mock_concept_set = Mock()
+    mock_concept_set.concept_set_name = "Original Name"
+
+    # Mock query result
+    mock_result = Mock()
+    mock_result.scalars.return_value.first.return_value = mock_concept_set
+    mock_session.execute.return_value = mock_result
+
+    # Configure flush to raise a generic IntegrityError
+    error_instance = IntegrityError("UPDATE failed", {"param": 1}, Exception("Generic DB Error"))
+    mock_session.flush.side_effect = error_instance
+
+    service = ConceptSetService(mock_session)
+
+    update_data = ConceptSetUpdate(name="New Name", items=None)
+    concept_set_id = 1
+
+    with pytest.raises(IntegrityError) as exc:
+        await service.update_concept_set(concept_set_id, update_data)
+
+    assert exc.value is error_instance
     mock_session.rollback.assert_awaited_once()
