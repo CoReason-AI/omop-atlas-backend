@@ -25,6 +25,8 @@ async def test_create_concept_set_integrity_error_passthrough() -> None:
     """
     # Mock Session
     mock_session = AsyncMock()
+    # Configure add to be a synchronous Mock (Session.add is sync)
+    mock_session.add = Mock()
 
     # Configure flush to raise a generic IntegrityError
     error_instance = IntegrityError("INSERT failed", {"param": 1}, Exception("Generic DB Error"))
@@ -50,6 +52,8 @@ async def test_update_concept_set_integrity_error_passthrough() -> None:
     """
     # Mock Session
     mock_session = AsyncMock()
+    # Configure add to be a synchronous Mock (Session.add is sync)
+    mock_session.add = Mock()
 
     # Mock get_concept_set return value
     mock_concept_set = Mock()
