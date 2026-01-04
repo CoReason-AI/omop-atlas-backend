@@ -9,16 +9,13 @@
 # Source Code: https://github.com/CoReason-AI/omop_atlas_backend
 
 from datetime import datetime
-from typing import List
 
 import pytest
 from pydantic import ValidationError
 
-from omop_atlas_backend.schemas.concept import Concept
 from omop_atlas_backend.schemas.concept_set import (
     ConceptSetCreate,
     ConceptSetItemCreate,
-    ConceptSetItemRead,
     ConceptSetRead,
     ConceptSetUpdate,
 )
@@ -26,12 +23,7 @@ from omop_atlas_backend.schemas.concept_set import (
 
 def test_concept_set_item_create_schema() -> None:
     """Test creation and validation of ConceptSetItemCreate."""
-    data = {
-        "conceptId": 123,
-        "isExcluded": True,
-        "includeDescendants": True,
-        "includeMapped": False
-    }
+    data = {"conceptId": 123, "isExcluded": True, "includeDescendants": True, "includeMapped": False}
     item = ConceptSetItemCreate(**data)
     assert item.concept_id == 123
     assert item.is_excluded is True
@@ -39,7 +31,7 @@ def test_concept_set_item_create_schema() -> None:
     assert item.include_mapped is False
 
     # Test defaults
-    item_default = ConceptSetItemCreate(conceptId=456)
+    item_default = ConceptSetItemCreate(concept_id=456)
     assert item_default.is_excluded is False
     assert item_default.include_descendants is False
     assert item_default.include_mapped is False
@@ -48,10 +40,7 @@ def test_concept_set_item_create_schema() -> None:
 def test_concept_set_create_schema() -> None:
     """Test creation and validation of ConceptSetCreate."""
     item_data = {"conceptId": 1}
-    cs_data = {
-        "name": "Test Set",
-        "items": [item_data]
-    }
+    cs_data = {"name": "Test Set", "items": [item_data]}
     cs = ConceptSetCreate(**cs_data)
     assert cs.name == "Test Set"
     assert len(cs.items) == 1
@@ -79,17 +68,11 @@ def test_concept_set_read_schema() -> None:
             "conceptClassId": "Clinical Finding",
             "conceptCode": "12345",
             "validStartDate": "2020-01-01",
-            "validEndDate": "2099-12-31"
-        }
+            "validEndDate": "2099-12-31",
+        },
     }
 
-    data = {
-        "id": 100,
-        "name": "My Set",
-        "createdById": 5,
-        "createdDate": now,
-        "items": [item_read_data]
-    }
+    data = {"id": 100, "name": "My Set", "createdById": 5, "createdDate": now, "items": [item_read_data]}
 
     cs_read = ConceptSetRead(**data)
     assert cs_read.id == 100

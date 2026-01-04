@@ -339,6 +339,7 @@ async def test_search_concepts_lexical(
     assert len(results_syn) >= 1
     assert results_syn[0].concept_id == 1
 
+
 @pytest.mark.asyncio
 async def test_search_concepts_lexical_whitespace_and_non_standard(
     vocabulary_service: VocabularyService, db_session: AsyncSession, seed_data: Concept

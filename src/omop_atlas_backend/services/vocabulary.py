@@ -173,9 +173,8 @@ class VocabularyService:
         ratio_score = case((c_len > 0, 1.0 - (func.cast(r_len, Float) / func.cast(c_len, Float))), else_=0.0)
 
         # Join back to Concept to get details and apply other filters
-        stmt_select: Select[Any] = (
-            select(ConceptModel)
-            .join(matched_ids_subquery, ConceptModel.concept_id == matched_ids_subquery.c.matched_concept)
+        stmt_select: Select[Any] = select(ConceptModel).join(
+            matched_ids_subquery, ConceptModel.concept_id == matched_ids_subquery.c.matched_concept
         )
 
         # If standard_concept is NOT specified in search, OHDSI legacy behavior often defaults to 'S'.
