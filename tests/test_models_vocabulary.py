@@ -13,6 +13,7 @@ from omop_atlas_backend.models.vocabulary import (
     ConceptAncestor,
     ConceptClass,
     ConceptRelationship,
+    ConceptSynonym,
     Domain,
     Relationship,
     Vocabulary,
@@ -97,3 +98,12 @@ def test_concept_ancestor_model_definitions() -> None:
     assert hasattr(ConceptAncestor, "descendant_concept_id")
     assert hasattr(ConceptAncestor, "min_levels_of_separation")
     assert hasattr(ConceptAncestor, "max_levels_of_separation")
+
+
+def test_concept_synonym_model_definitions() -> None:
+    """Test that ConceptSynonym model fields are defined correctly."""
+    assert ConceptSynonym.__tablename__ == "concept_synonym"
+
+    assert hasattr(ConceptSynonym, "concept_id")
+    assert hasattr(ConceptSynonym, "concept_synonym_name")
+    assert hasattr(ConceptSynonym, "language_concept_id")
