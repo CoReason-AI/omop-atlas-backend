@@ -14,16 +14,18 @@ Handles logic for searching and retrieving concepts.
 Implements Rule #1 (Read-Only Vocabulary Optimization) and Redis caching.
 """
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from redis.asyncio import Redis
-from sqlalchemy import Float, Select, case, func, or_, select, union
+from sqlalchemy import Float, Select, case, func, literal, or_, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from omop_atlas_backend.models.vocabulary import Concept as ConceptModel
-from omop_atlas_backend.models.vocabulary import ConceptSynonym
+from omop_atlas_backend.models.vocabulary import ConceptAncestor, ConceptRelationship, ConceptSynonym, Relationship
 from omop_atlas_backend.schemas.concept import Concept as ConceptSchema
 from omop_atlas_backend.schemas.concept import ConceptSearch
+from omop_atlas_backend.schemas.concept import RelatedConcept as RelatedConceptSchema
 from omop_atlas_backend.services.exceptions import ConceptNotFound
 
 
@@ -114,6 +116,137 @@ class VocabularyService:
 
         result = await self.db.execute(stmt)
         return [ConceptSchema.model_validate(c) for c in result.scalars().all()]
+
+    async def get_related_concepts(self, concept_id: int) -> List[RelatedConceptSchema]:
+        """
+        Retrieves concepts related to the given concept ID via relationship and ancestor tables.
+        Matches OHDSI WebAPI getRelatedConcepts logic.
+        """
+        cache_key = f"concept_related:{concept_id}"
+
+        if self.redis:
+            try:
+                cached = await self.redis.get(cache_key)
+                if cached:
+                    # Expecting a list of dicts/json
+                    import json
+
+                    data = json.loads(cached)
+                    return [RelatedConceptSchema.model_validate(item) for item in data]
+            except Exception:
+                pass
+
+        # 1. Direct Relationships (ConceptRelationship)
+        # Query 1: (concept_id_1 = id) -> concept_id_2 is the related concept
+        # We need to join Relationship to get relationship_name
+        # And join Concept (for concept_id_2) to get related concept details
+        c2 = aliased(ConceptModel)
+        r = aliased(Relationship)
+
+        q1 = (
+            select(
+                c2,
+                r.relationship_name,
+                literal(0).label("relationship_distance"),  # Direct relationships have distance 0 or 1?
+            )
+            .select_from(ConceptRelationship)
+            .join(c2, ConceptRelationship.concept_id_2 == c2.concept_id)
+            .join(r, ConceptRelationship.relationship_id == r.relationship_id)
+            .where(ConceptRelationship.concept_id_1 == concept_id)
+            .where(ConceptRelationship.invalid_reason.is_(None))
+        )
+
+        # 2. Ancestry (ConceptAncestor)
+        # Query 2: Ancestors (descendant_concept_id = id) -> ancestor_concept_id is related
+        # Relationship Name: "Ancestor"
+        # Distance: min_levels_of_separation
+        ca1 = aliased(ConceptAncestor)
+        c_anc = aliased(ConceptModel)
+        q2 = (
+            select(
+                c_anc,
+                literal("Ancestor").label("relationship_name"),
+                ca1.min_levels_of_separation.label("relationship_distance"),
+            )
+            .select_from(ca1)
+            .join(c_anc, ca1.ancestor_concept_id == c_anc.concept_id)
+            .where(ca1.descendant_concept_id == concept_id)
+            .where(ca1.ancestor_concept_id != concept_id)  # Exclude self
+        )
+
+        # Query 3: Descendants (ancestor_concept_id = id) -> descendant_concept_id is related
+        # Relationship Name: "Descendant"
+        # Distance: min_levels_of_separation
+        ca2 = aliased(ConceptAncestor)
+        c_desc = aliased(ConceptModel)
+        q3 = (
+            select(
+                c_desc,
+                literal("Descendant").label("relationship_name"),
+                ca2.min_levels_of_separation.label("relationship_distance"),
+            )
+            .select_from(ca2)
+            .join(c_desc, ca2.descendant_concept_id == c_desc.concept_id)
+            .where(ca2.ancestor_concept_id == concept_id)
+            .where(ca2.descendant_concept_id != concept_id)  # Exclude self
+        )
+
+        related_map: Dict[int, RelatedConceptSchema] = {}
+
+        # Execute Q1
+        res1 = await self.db.execute(q1)
+        for row in res1.all():
+            concept, rel_name, rel_dist = row
+            self._add_relationship(related_map, concept, rel_name, rel_dist)
+
+        # Execute Q2
+        res2 = await self.db.execute(q2)
+        for row in res2.all():
+            concept, rel_name, rel_dist = row
+            self._add_relationship(related_map, concept, rel_name, rel_dist)
+
+        # Execute Q3
+        res3 = await self.db.execute(q3)
+        for row in res3.all():
+            concept, rel_name, rel_dist = row
+            self._add_relationship(related_map, concept, rel_name, rel_dist)
+
+        results = list(related_map.values())
+
+        if self.redis:
+            try:
+                # Serialize list of Pydantic models
+                json_data = "[" + ",".join([r.model_dump_json(by_alias=True) for r in results]) + "]"
+                await self.redis.set(cache_key, json_data, ex=3600)
+            except Exception:
+                pass
+
+        return results
+
+    def _add_relationship(
+        self, related_map: Dict[int, RelatedConceptSchema], concept: ConceptModel, rel_name: str, rel_dist: int
+    ) -> None:
+        """Helper to aggregate relationships for a concept."""
+        if concept.concept_id not in related_map:
+            # Create new RelatedConcept
+            # We first convert the SQLAlchemy model to the Pydantic Schema
+            base_schema = ConceptSchema.model_validate(concept)
+            # Then create RelatedConcept (which inherits fields)
+            related_obj = RelatedConceptSchema(
+                **base_schema.model_dump(by_alias=True),
+                relationships=[],
+            )
+            related_map[concept.concept_id] = related_obj
+
+        # Add relationship details
+        # We need a schema for relationship
+        from omop_atlas_backend.schemas.concept import ConceptRelationship
+
+        rel_obj = ConceptRelationship(
+            relationship_name=rel_name,
+            relationship_distance=rel_dist,
+        )
+        related_map[concept.concept_id].relationships.append(rel_obj)
 
     async def _search_lexical(self, search: ConceptSearch, limit: int, offset: int) -> List[ConceptSchema]:
         """

@@ -65,3 +65,29 @@ class ConceptSearch(BaseModel):
         populate_by_name=True,
         str_strip_whitespace=True,
     )
+
+
+class ConceptRelationship(BaseModel):
+    """
+    Pydantic model for Concept Relationship (DTO).
+    Represents the relationship details when fetching related concepts.
+    """
+
+    relationship_name: str = Field(alias="relationshipName")
+    relationship_distance: int = Field(alias="relationshipDistance")
+    relationship_id: Optional[str] = Field(None, alias="relationshipId")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        str_strip_whitespace=True,
+        from_attributes=True,
+    )
+
+
+class RelatedConcept(Concept):
+    """
+    Pydantic model for Related Concept.
+    Extends Concept with a list of relationships.
+    """
+
+    relationships: List[ConceptRelationship] = Field(default_factory=list, alias="relationships")
